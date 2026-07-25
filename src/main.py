@@ -1,161 +1,85 @@
 from core.feniks import Feniks
-from core.truth_engine import (
-    Claim,
-    Evidence,
-    KnowledgeType,
-    SourceType,
-)
 
 
 feniks = Feniks()
 
-print("=" * 60)
+print("=" * 70)
 print(feniks.start())
-print("=" * 60)
+print("=" * 70)
 
+print("\nREJESTR ROZWOJU FENIKSA")
+print("-" * 70)
 
-def show_assessment(number, assessment):
-    print(f"\nTEST {number}")
-    print(f"TWIERDZENIE: {assessment.claim.content}")
+# Rejestrujemy pierwsze rzeczywiste doświadczenie rozwojowe.
+wpis = feniks.register_first_development_experience()
+
+print(f"\nTYTUŁ:")
+print(wpis.title)
+
+print(f"\nKATEGORIA:")
+print(wpis.category.value)
+
+print(f"\nSTATUS:")
+print(wpis.status.value)
+
+print(f"\nWYKRYTO PRZEZ:")
+print(wpis.discovered_by)
+
+print(f"\nOPIS:")
+print(wpis.description)
+
+print("\nDOWODY:")
+if wpis.evidence:
+    for numer, dowod in enumerate(wpis.evidence, start=1):
+        print(f"{numer}. {dowod}")
+else:
+    print("Brak zapisanych dowodów.")
+
+print("\nWPROWADZONE ZMIANY:")
+if wpis.changes:
+    for numer, zmiana in enumerate(wpis.changes, start=1):
+        print(f"{numer}. {zmiana}")
+else:
+    print("Brak zapisanych zmian.")
+
+print("\nWYNIKI TESTÓW:")
+if wpis.test_results:
+    for numer, wynik in enumerate(wpis.test_results, start=1):
+        print(f"{numer}. {wynik}")
+else:
+    print("Brak wyników testów.")
+
+print("\nNIEROZWIĄZANE KWESTIE:")
+if wpis.unresolved:
+    for numer, problem in enumerate(wpis.unresolved, start=1):
+        print(f"{numer}. {problem}")
+else:
+    print("Brak nierozwiązanych kwestii.")
+
+print("\n" + "=" * 70)
+print("HISTORIA ROZWOJU")
+print("=" * 70)
+
+historia = feniks.development_history()
+
+print(f"Liczba zapisanych doświadczeń: {len(historia)}")
+
+for numer, element in enumerate(historia, start=1):
     print(
-        f"KLASYFIKACJA: "
-        f"{assessment.classification.value.upper()}"
-    )
-    print(
-        f"PEWNOŚĆ: "
-        f"{assessment.confidence:.0%}"
-    )
-    print(
-        f"DOWODY ZA: "
-        f"{assessment.supporting_evidence}"
-    )
-    print(
-        f"DOWODY PRZECIW: "
-        f"{assessment.opposing_evidence}"
-    )
-    print(
-        f"SPRZECZNOŚĆ: "
-        f"{assessment.contradiction_detected}"
-    )
-    print(
-        f"POTRZEBA WIĘCEJ DOWODÓW: "
-        f"{assessment.requires_more_evidence}"
-    )
-    print(
-        f"UZASADNIENIE: "
-        f"{assessment.explanation}"
+        f"{numer}. {element.title} "
+        f"[{element.status.value}]"
     )
 
-
-# ---------------------------------------------------------
-# TEST 1
-# Twierdzenie bez żadnych dowodów
-# ---------------------------------------------------------
-
-claim_1 = Claim(
-    content="Jutro będzie padał deszcz.",
-    knowledge_type=KnowledgeType.HYPOTHESIS,
-    source="test",
-    source_type=SourceType.USER,
-)
-
-feniks.register_claim(claim_1)
-
-assessment_1 = feniks.assess_claim(claim_1)
-
-show_assessment(1, assessment_1)
-
-
-# ---------------------------------------------------------
-# TEST 2
-# Twierdzenie posiadające mocne poparcie
-# ---------------------------------------------------------
-
-claim_2 = Claim(
-    content="Testowy moduł Truth Engine został uruchomiony.",
-    knowledge_type=KnowledgeType.HYPOTHESIS,
-    source="FENIKS",
-    source_type=SourceType.SYSTEM,
-)
-
-feniks.register_claim(claim_2)
-
-feniks.add_evidence(
-    claim_2,
-    Evidence(
-        description=(
-            "Program wykonuje kod Truth Engine "
-            "i zwraca wynik jego analizy."
-        ),
-        source="runtime",
-        source_type=SourceType.SYSTEM,
-        reliability=0.98,
-        supports_claim=True,
-    ),
-)
-
-feniks.add_evidence(
-    claim_2,
-    Evidence(
-        description=(
-            "Instancja TruthEngine istnieje "
-            "w działającym rdzeniu FENIKSA."
-        ),
-        source="runtime",
-        source_type=SourceType.SYSTEM,
-        reliability=0.95,
-        supports_claim=True,
-    ),
-)
-
-assessment_2 = feniks.assess_claim(claim_2)
-
-show_assessment(2, assessment_2)
-
-
-# ---------------------------------------------------------
-# TEST 3
-# Dowody wzajemnie sprzeczne
-# ---------------------------------------------------------
-
-claim_3 = Claim(
-    content="Eksperymentalny czujnik wykrył obiekt.",
-    knowledge_type=KnowledgeType.HYPOTHESIS,
-    source="test",
-    source_type=SourceType.SENSOR,
-)
-
-feniks.register_claim(claim_3)
-
-feniks.add_evidence(
-    claim_3,
-    Evidence(
-        description="Czujnik A zgłosił wykrycie obiektu.",
-        source="sensor_A",
-        source_type=SourceType.SENSOR,
-        reliability=0.90,
-        supports_claim=True,
-    ),
-)
-
-feniks.add_evidence(
-    claim_3,
-    Evidence(
-        description="Czujnik B nie potwierdził obecności obiektu.",
-        source="sensor_B",
-        source_type=SourceType.SENSOR,
-        reliability=0.85,
-        supports_claim=False,
-    ),
-)
-
-assessment_3 = feniks.assess_claim(claim_3)
-
-show_assessment(3, assessment_3)
-
-
-print("\n" + "=" * 60)
+print("\n" + "=" * 70)
 print("STAN FENIKSA")
+print("=" * 70)
 
-for key, value in feniks.status().items():
-    print(f"- {key}: {value}")
+for klucz, wartosc in feniks.status().items():
+
+    if isinstance(wartosc, bool):
+        wartosc = "TAK" if wartosc else "NIE"
+
+    print(
+        f"- {klucz.replace('_', ' ').upper()}: "
+        f"{wartosc}"
+    )
