@@ -7,79 +7,115 @@ print("=" * 70)
 print(feniks.start())
 print("=" * 70)
 
-print("\nREJESTR ROZWOJU FENIKSA")
+print("\nTEST TRWAŁEJ PAMIĘCI FENIKSA")
 print("-" * 70)
 
-# Rejestrujemy pierwsze rzeczywiste doświadczenie rozwojowe.
-wpis = feniks.register_first_development_experience()
+liczba_wpisow = feniks.persistent_memory.count()
 
-print(f"\nTYTUŁ:")
-print(wpis.title)
+print(
+    f"\nLiczba wpisów znalezionych "
+    f"w trwałej pamięci: {liczba_wpisow}"
+)
 
-print(f"\nKATEGORIA:")
-print(wpis.category.value)
 
-print(f"\nSTATUS:")
-print(wpis.status.value)
+if liczba_wpisow == 0:
 
-print(f"\nWYKRYTO PRZEZ:")
-print(wpis.discovered_by)
+    print("\nTo jest pierwsze uruchomienie testu.")
+    print("Zapisuję pierwsze trwałe wspomnienie...")
 
-print(f"\nOPIS:")
-print(wpis.description)
-
-print("\nDOWODY:")
-if wpis.evidence:
-    for numer, dowod in enumerate(wpis.evidence, start=1):
-        print(f"{numer}. {dowod}")
-else:
-    print("Brak zapisanych dowodów.")
-
-print("\nWPROWADZONE ZMIANY:")
-if wpis.changes:
-    for numer, zmiana in enumerate(wpis.changes, start=1):
-        print(f"{numer}. {zmiana}")
-else:
-    print("Brak zapisanych zmian.")
-
-print("\nWYNIKI TESTÓW:")
-if wpis.test_results:
-    for numer, wynik in enumerate(wpis.test_results, start=1):
-        print(f"{numer}. {wynik}")
-else:
-    print("Brak wyników testów.")
-
-print("\nNIEROZWIĄZANE KWESTIE:")
-if wpis.unresolved:
-    for numer, problem in enumerate(wpis.unresolved, start=1):
-        print(f"{numer}. {problem}")
-else:
-    print("Brak nierozwiązanych kwestii.")
-
-print("\n" + "=" * 70)
-print("HISTORIA ROZWOJU")
-print("=" * 70)
-
-historia = feniks.development_history()
-
-print(f"Liczba zapisanych doświadczeń: {len(historia)}")
-
-for numer, element in enumerate(historia, start=1):
-    print(
-        f"{numer}. {element.title} "
-        f"[{element.status.value}]"
+    numer_wpisu = feniks.remember_permanently(
+        category="ROZWÓJ",
+        title="Pierwsze trwałe wspomnienie FENIKSA",
+        content=(
+            "FENIKS uruchomił swoją pierwszą trwałą "
+            "pamięć SQLite. To wspomnienie powinno "
+            "przetrwać zamknięcie i ponowne "
+            "uruchomienie programu."
+        ),
+        source="FENIKS",
+        metadata={
+            "rodzaj": "test trwałości pamięci",
+            "ważne": True,
+        },
     )
 
-print("\n" + "=" * 70)
-print("STAN FENIKSA")
-print("=" * 70)
+    print(
+        f"\nWspomnienie zostało zapisane "
+        f"pod numerem: {numer_wpisu}"
+    )
 
-for klucz, wartosc in feniks.status().items():
+    print("\nTERAZ WAŻNE:")
+    print(
+        "Pierwszy etap testu został zakończony."
+    )
+    print(
+        "Uruchom ten sam program jeszcze raz."
+    )
 
-    if isinstance(wartosc, bool):
-        wartosc = "TAK" if wartosc else "NIE"
+else:
 
     print(
-        f"- {klucz.replace('_', ' ').upper()}: "
-        f"{wartosc}"
+        "\nFENIKS został uruchomiony ponownie "
+        "i znalazł wcześniejsze wspomnienia."
     )
+
+    wspomnienia = feniks.recall_permanent(
+        limit=10
+    )
+
+    print("\nODZYSKANE WSPOMNIENIA:")
+    print("-" * 70)
+
+    for wspomnienie in wspomnienia:
+
+        print(
+            f"\nNUMER: "
+            f"{wspomnienie['id']}"
+        )
+
+        print(
+            f"KATEGORIA: "
+            f"{wspomnienie['kategoria']}"
+        )
+
+        print(
+            f"TYTUŁ: "
+            f"{wspomnienie['tytul']}"
+        )
+
+        print(
+            f"TREŚĆ: "
+            f"{wspomnienie['tresc']}"
+        )
+
+        print(
+            f"ŹRÓDŁO: "
+            f"{wspomnienie['zrodlo']}"
+        )
+
+        print(
+            f"UTWORZONO: "
+            f"{wspomnienie['utworzono']}"
+        )
+
+        print(
+            f"METADANE: "
+            f"{wspomnienie['metadane']}"
+        )
+
+
+print("\n" + "=" * 70)
+print("STAN PAMIĘCI")
+print("=" * 70)
+
+stan = feniks.persistent_memory.status()
+
+print(
+    f"PAMIĘĆ TRWAŁA GOTOWA: "
+    f"{'TAK' if stan['gotowa'] else 'NIE'}"
+)
+
+print(
+    f"LICZBA TRWAŁYCH WSPOMNIEŃ: "
+    f"{stan['liczba_wpisow']}"
+)

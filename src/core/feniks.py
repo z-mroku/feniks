@@ -7,6 +7,7 @@ from core.development_log import (
 from core.guardian import Guardian
 from core.identity import Identity
 from core.memory import Memory
+from core.persistent_memory import PersistentMemory
 from core.truth_engine import Claim, Evidence, TruthEngine
 
 
@@ -29,6 +30,9 @@ class Feniks:
 
         # Pamięć robocza
         self.memory = Memory(capacity=20)
+
+        # Trwała pamięć SQLite
+        self.persistent_memory = PersistentMemory()
 
         # Silnik Prawdy
         self.truth_engine = TruthEngine()
@@ -103,7 +107,7 @@ class Feniks:
     def remember(
         self,
         content: str,
-        source: str = "user",
+        source: str = "użytkownik",
     ):
         """
         Zapisuje informację w pamięci roboczej.
@@ -115,9 +119,53 @@ class Feniks:
 
     def recall(self, limit: int = 5):
         """
-        Odczytuje ostatnie informacje z pamięci roboczej.
+        Odczytuje informacje z pamięci roboczej.
         """
         return self.memory.recall(limit)
+
+    def remember_permanently(
+        self,
+        category: str,
+        title: str,
+        content: str,
+        source: str = "FENIKS",
+        metadata=None,
+    ):
+        """
+        Zapisuje informację w trwałej pamięci FENIKSA.
+        """
+
+        return self.persistent_memory.save(
+            category=category,
+            title=title,
+            content=content,
+            source=source,
+            metadata=metadata,
+        )
+
+    def recall_permanent(
+        self,
+        limit: int = 10,
+    ):
+        """
+        Odczytuje ostatnie wpisy z trwałej pamięci.
+        """
+
+        return self.persistent_memory.recent(
+            limit=limit
+        )
+
+    def search_permanent_memory(
+        self,
+        phrase: str,
+    ):
+        """
+        Przeszukuje trwałą pamięć.
+        """
+
+        return self.persistent_memory.search(
+            phrase=phrase
+        )
 
     def register_development(
         self,
@@ -129,6 +177,7 @@ class Feniks:
         """
         Rejestruje problem, odkrycie albo ulepszenie.
         """
+
         return self.development_log.register(
             title=title,
             description=description,
@@ -140,15 +189,13 @@ class Feniks:
         """
         Odczytuje historię rozwoju.
         """
+
         return self.development_log.history()
 
     def register_first_development_experience(self):
         """
         Rejestruje pierwsze rzeczywiste doświadczenie
         rozwojowe FENIKSA związane z Silnikiem Prawdy.
-
-        Metoda jest przeznaczona do testu obecnej
-        architektury Rejestru Rozwoju.
         """
 
         entry = self.register_development(
@@ -163,25 +210,26 @@ class Feniks:
                 "przeciwnych."
             ),
             category=DevelopmentCategory.TRUTH,
-            discovered_by="Krzysztof Godlewski i FENIKS",
+            discovered_by=(
+                "Krzysztof Godlewski i FENIKS"
+            ),
         )
 
         self.development_log.add_evidence(
             entry,
             (
-                "Test twierdzenia o uruchomieniu "
-                "Silnika Prawdy zwrócił 100% pewności "
-                "przy dwóch dowodach o wiarygodności "
-                "0.98 oraz 0.95."
+                "Test Silnika Prawdy zwrócił 100% "
+                "pewności przy dwóch dowodach "
+                "o wiarygodności 0.98 oraz 0.95."
             ),
         )
 
         self.development_log.add_change(
             entry,
             (
-                "Zmieniono algorytm pewności tak, aby "
-                "uwzględniał bilans dowodów, ich średnią "
-                "jakość oraz liczbę."
+                "Algorytm zmieniono tak, aby uwzględniał "
+                "bilans dowodów, ich średnią jakość "
+                "oraz liczbę."
             ),
         )
 
@@ -198,7 +246,7 @@ class Feniks:
             (
                 "Należy rozdzielić siłę poparcia "
                 "twierdzenia od pewności klasyfikacji "
-                "w przypadku sprzecznych dowodów."
+                "przy sprzecznych dowodach."
             ),
         )
 
@@ -214,35 +262,60 @@ class Feniks:
         Podstawowa samoobserwacja stanu systemu.
         """
 
-        constitution_summary = self.constitution.summary()
-        truth_stats = self.truth_engine.stats()
-        development_stats = self.development_log.stats()
+        constitution_summary = (
+            self.constitution.summary()
+        )
+
+        truth_stats = (
+            self.truth_engine.stats()
+        )
+
+        development_stats = (
+            self.development_log.stats()
+        )
+
+        permanent_memory_status = (
+            self.persistent_memory.status()
+        )
 
         return {
             "nazwa": self.identity.name,
             "wersja": self.identity.version,
-            "wpisy_pamieci_roboczej": self.memory.count(),
+
+            "wpisy_pamieci_roboczej":
+                self.memory.count(),
 
             "tozsamosc_zaladowana": True,
 
             "konstytucja_zaladowana": True,
-            "wersja_konstytucji": constitution_summary["version"],
-            "artykuly_konstytucji": constitution_summary["articles"],
+            "wersja_konstytucji":
+                constitution_summary["version"],
+            "artykuly_konstytucji":
+                constitution_summary["articles"],
 
             "straznik_zaladowany": True,
-            "kontrole_straznika": len(
-                self.guardian.history()
-            ),
+            "kontrole_straznika":
+                len(self.guardian.history()),
 
             "silnik_prawdy_zaladowany": True,
-            "twierdzenia": truth_stats["registered_claims"],
-            "analizy_twierdzen": truth_stats["assessments"],
-            "sprzecznosci": truth_stats["contradictions"],
-            "nierozstrzygniete": truth_stats["unresolved"],
+            "twierdzenia":
+                truth_stats["registered_claims"],
+            "analizy_twierdzen":
+                truth_stats["assessments"],
+            "sprzecznosci":
+                truth_stats["contradictions"],
+            "nierozstrzygniete":
+                truth_stats["unresolved"],
 
             "rejestr_rozwoju_zaladowany": True,
-            "wpisy_rozwoju": development_stats["liczba_wpisow"],
-            "nierozwiazane_kwestie": development_stats[
-                "nierozwiazane"
-            ],
+            "wpisy_rozwoju":
+                development_stats["liczba_wpisow"],
+            "nierozwiazane_kwestie":
+                development_stats["nierozwiazane"],
+
+            "pamiec_trwala_zaladowana": True,
+            "wpisy_pamieci_trwalej":
+                permanent_memory_status[
+                    "liczba_wpisow"
+                ],
         }
