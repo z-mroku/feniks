@@ -1,3 +1,5 @@
 ~$*
 __pycache__/
 data/
+# Python package metadata
+*.egg-info/
