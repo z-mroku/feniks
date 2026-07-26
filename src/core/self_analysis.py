@@ -1,0 +1,403 @@
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from core.persistent_memory import PersistentMemory
+
+
+class AnalysisPriority(Enum):
+    """
+    Priorytet problemu wykrytego podczas samoanalizy.
+    """
+
+    LOW = "NISKI"
+    MEDIUM = "ŚREDNI"
+    HIGH = "WYSOKI"
+    CRITICAL = "KRYTYCZNY"
+
+
+class AnalysisStatus(Enum):
+    """
+    Stan problemu z punktu widzenia samoanalizy.
+    """
+
+    OBSERVED = "ZAOBSERWOWANO"
+    REQUIRES_ANALYSIS = "WYMAGA ANALIZY"
+    PROPOSAL_READY = "PRZYGOTOWANO PROPOZYCJĘ"
+    NO_ACTION = "NIE WYMAGA DZIAŁANIA"
+
+
+@dataclass
+class SelfAnalysisFinding:
+    """
+    Pojedyncze ustalenie powstałe podczas samoanalizy.
+    """
+
+    title: str
+    module: str
+    problem: str
+
+    priority: AnalysisPriority
+    status: AnalysisStatus
+
+    evidence: List[str] = field(
+        default_factory=list
+    )
+
+    unknowns: List[str] = field(
+        default_factory=list
+    )
+
+    proposed_next_step: Optional[str] = None
+    source_entry_id: Optional[int] = None
+
+    created_at: str = field(
+        default_factory=lambda: datetime.now().isoformat(
+            timespec="seconds"
+        )
+    )
+
+
+@dataclass
+class SelfAnalysisReport:
+    """
+    Pełny raport samoanalizy FENIKSA.
+    """
+
+    findings: List[SelfAnalysisFinding]
+
+    created_at: str = field(
+        default_factory=lambda: datetime.now().isoformat(
+            timespec="seconds"
+        )
+    )
+
+    @property
+    def number_of_findings(self) -> int:
+        return len(self.findings)
+
+    @property
+    def requires_attention(self) -> bool:
+        return any(
+            finding.status
+            == AnalysisStatus.REQUIRES_ANALYSIS
+            for finding in self.findings
+        )
+
+    def critical_findings(
+        self,
+    ) -> List[SelfAnalysisFinding]:
+        """
+        Zwraca problemy oznaczone jako krytyczne.
+        """
+
+        return [
+            finding
+            for finding in self.findings
+            if finding.priority
+            == AnalysisPriority.CRITICAL
+        ]
+
+
+class SelfAnalysis:
+    """
+    Moduł samoanalizy FENIKS OS.
+
+    Nie zmienia samodzielnie kodu.
+
+    Jego zadaniem jest:
+    1. odczytać historię rozwoju,
+    2. znaleźć nierozwiązane problemy,
+    3. wskazać podstawę ich wykrycia,
+    4. określić obszar systemu,
+    5. wskazać braki wiedzy,
+    6. zaproponować następny krok.
+    """
+
+    def __init__(
+        self,
+        persistent_memory: PersistentMemory,
+    ):
+        self.persistent_memory = persistent_memory
+
+        self.reports: List[
+            SelfAnalysisReport
+        ] = []
+
+    def analyze_development_history(
+        self,
+    ) -> SelfAnalysisReport:
+        """
+        Analizuje nierozwiązane wpisy
+        trwałej historii rozwoju.
+        """
+
+        unresolved_entries = (
+            self.persistent_memory
+            .unresolved_development()
+        )
+
+        findings: List[
+            SelfAnalysisFinding
+        ] = []
+
+        for entry in unresolved_entries:
+            finding = self._analyze_development_entry(
+                entry
+            )
+
+            findings.append(
+                finding
+            )
+
+        report = SelfAnalysisReport(
+            findings=findings
+        )
+
+        self.reports.append(
+            report
+        )
+
+        return report
+
+    def _analyze_development_entry(
+        self,
+        entry: Dict[str, Any],
+    ) -> SelfAnalysisFinding:
+        """
+        Zamienia nierozwiązany wpis historii
+        rozwoju na ustalenie samoanalizy.
+        """
+
+        unresolved = entry.get(
+            "nierozwiazane",
+            [],
+        )
+
+        evidence = entry.get(
+            "dowody",
+            [],
+        )
+
+        changes = entry.get(
+            "zmiany",
+            [],
+        )
+
+        test_results = entry.get(
+            "wyniki_testow",
+            [],
+        )
+
+        category = entry.get(
+            "kategoria",
+            "NIEZNANY OBSZAR",
+        )
+
+        problem = self._build_problem_description(
+            unresolved
+        )
+
+        analysis_evidence = (
+            self._build_analysis_evidence(
+                evidence=evidence,
+                changes=changes,
+                test_results=test_results,
+            )
+        )
+
+        unknowns = self._identify_unknowns(
+            entry=entry
+        )
+
+        priority = self._estimate_priority(
+            entry=entry
+        )
+
+        proposed_next_step = (
+            self._propose_next_step(
+                entry=entry
+            )
+        )
+
+        return SelfAnalysisFinding(
+            title=entry.get(
+                "tytul",
+                "Nienazwany problem",
+            ),
+            module=category,
+            problem=problem,
+            priority=priority,
+            status=AnalysisStatus.REQUIRES_ANALYSIS,
+            evidence=analysis_evidence,
+            unknowns=unknowns,
+            proposed_next_step=proposed_next_step,
+            source_entry_id=entry.get("id"),
+        )
+
+    def _build_problem_description(
+        self,
+        unresolved: List[str],
+    ) -> str:
+        """
+        Buduje opis problemu z zapisanych
+        nierozwiązanych kwestii.
+        """
+
+        if not unresolved:
+            return (
+                "Nie znaleziono jednoznacznie "
+                "opisanego nierozwiązanego problemu."
+            )
+
+        return " ".join(
+            unresolved
+        )
+
+    def _build_analysis_evidence(
+        self,
+        evidence: List[str],
+        changes: List[str],
+        test_results: List[str],
+    ) -> List[str]:
+        """
+        Buduje zestaw podstaw samoanalizy.
+        """
+
+        result: List[str] = []
+
+        for item in evidence:
+            result.append(
+                f"Dowód historyczny: {item}"
+            )
+
+        for item in changes:
+            result.append(
+                f"Wcześniejsza zmiana: {item}"
+            )
+
+        for item in test_results:
+            result.append(
+                f"Wynik wcześniejszego testu: {item}"
+            )
+
+        if not result:
+            result.append(
+                "Brak wystarczających danych "
+                "historycznych do pełnej oceny."
+            )
+
+        return result
+
+    def _identify_unknowns(
+        self,
+        entry: Dict[str, Any],
+    ) -> List[str]:
+        """
+        Wskazuje informacje, których obecna
+        historia nie pozwala jeszcze ustalić.
+        """
+
+        unknowns: List[str] = []
+
+        if entry.get("nierozwiazane"):
+            unknowns.append(
+                "Nie wiadomo jeszcze, jakie rozwiązanie "
+                "najlepiej usunie zapisany problem."
+            )
+
+        if not entry.get("wyniki_testow"):
+            unknowns.append(
+                "Brakuje wyników testów pozwalających "
+                "ocenić zachowanie systemu."
+            )
+
+        if not entry.get("dowody"):
+            unknowns.append(
+                "Brakuje zapisanych dowodów "
+                "uzasadniających problem."
+            )
+
+        return unknowns
+
+    def _estimate_priority(
+        self,
+        entry: Dict[str, Any],
+    ) -> AnalysisPriority:
+        """
+        Ustala priorytet problemu według jawnych reguł.
+        """
+
+        category = str(
+            entry.get(
+                "kategoria",
+                ""
+            )
+        ).casefold()
+
+        if "prawdy" in category:
+            return AnalysisPriority.HIGH
+
+        if entry.get("nierozwiazane"):
+            return AnalysisPriority.MEDIUM
+
+        return AnalysisPriority.LOW
+
+    def _propose_next_step(
+        self,
+        entry: Dict[str, Any],
+    ) -> str:
+        """
+        Przygotowuje propozycję następnego kroku.
+        """
+
+        category = str(
+            entry.get(
+                "kategoria",
+                ""
+            )
+        ).casefold()
+
+        if "prawdy" in category:
+            return (
+                "Przeanalizować sposób obliczania "
+                "pewności przy sprzecznych dowodach "
+                "i rozdzielić co najmniej trzy wartości: "
+                "siłę poparcia, siłę sprzeciwu oraz "
+                "pewność klasyfikacji."
+            )
+
+        return (
+            "Przeanalizować dostępne dowody, "
+            "zaprojektować możliwe rozwiązanie "
+            "i poddać je testom przed wdrożeniem."
+        )
+
+    def last_report(
+        self,
+    ) -> Optional[SelfAnalysisReport]:
+        """
+        Zwraca ostatni raport samoanalizy.
+        """
+
+        if not self.reports:
+            return None
+
+        return self.reports[-1]
+
+    def stats(self) -> Dict[str, Any]:
+        """
+        Podstawowy stan modułu samoanalizy.
+        """
+
+        findings = sum(
+            report.number_of_findings
+            for report in self.reports
+        )
+
+        return {
+            "liczba_raportow": len(self.reports),
+            "liczba_ustalen": findings,
+            "modul_gotowy": True,
+        }

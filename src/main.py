@@ -7,130 +7,87 @@ print("=" * 70)
 print(feniks.start())
 print("=" * 70)
 
-print("\nTEST TRWAŁEJ HISTORII ROZWOJU FENIKSA")
+print("\nSAMOANALIZA FENIKSA")
 print("-" * 70)
 
-liczba_wpisow = (
-    feniks.persistent_memory.development_count()
+print(
+    "\nFENIKS analizuje trwałą historię "
+    "swojego rozwoju..."
+)
+
+raport = feniks.analyze_self()
+
+print(
+    f"\nLICZBA WYKRYTYCH PROBLEMÓW: "
+    f"{raport.number_of_findings}"
 )
 
 print(
-    f"\nLiczba trwałych wpisów rozwoju: "
-    f"{liczba_wpisow}"
+    "WYMAGA UWAGI: "
+    + (
+        "TAK"
+        if raport.requires_attention
+        else "NIE"
+    )
 )
 
 
-# =========================================================
-# PIERWSZE URUCHOMIENIE
-# =========================================================
-
-if liczba_wpisow == 0:
+if raport.number_of_findings == 0:
 
     print(
-        "\nNie znaleziono wcześniejszej "
-        "historii rozwoju."
+        "\nNie znaleziono nierozwiązanych "
+        "problemów wymagających analizy."
     )
-
-    print(
-        "Tworzę pierwszy trwały wpis rozwojowy..."
-    )
-
-    wpis = (
-        feniks.create_first_development_experience()
-    )
-
-    numer_wpisu = (
-        feniks.save_development_permanently(
-            wpis
-        )
-    )
-
-    print(
-        f"\nWpis został zapisany trwale "
-        f"pod numerem: {numer_wpisu}"
-    )
-
-    print("\nZAPISANE DOŚWIADCZENIE:")
-    print(f"TYTUŁ: {wpis.title}")
-    print(f"KATEGORIA: {wpis.category.value}")
-    print(f"STATUS: {wpis.status.value}")
-    print(
-        f"WYKRYTO PRZEZ: "
-        f"{wpis.discovered_by}"
-    )
-
-    print("\nPierwszy etap testu zakończony.")
-
-    print(
-        "Uruchom program ponownie, aby sprawdzić, "
-        "czy FENIKS odzyska historię z bazy."
-    )
-
-
-# =========================================================
-# KOLEJNE URUCHOMIENIE
-# =========================================================
 
 else:
 
-    print(
-        "\nFENIKS znalazł wcześniejszą "
-        "historię swojego rozwoju."
-    )
-
-    historia = (
-        feniks.permanent_development_history()
-    )
-
-    for numer, wpis in enumerate(
-        historia,
+    for numer, ustalenie in enumerate(
+        raport.findings,
         start=1,
     ):
 
         print("\n" + "=" * 70)
-
         print(
-            f"DOŚWIADCZENIE ROZWOJOWE {numer}"
+            f"USTALENIE SAMOANALIZY {numer}"
         )
-
         print("=" * 70)
 
         print(
-            f"\nNUMER W BAZIE: "
-            f"{wpis['id']}"
+            f"\nTYTUŁ:\n"
+            f"{ustalenie.title}"
         )
 
         print(
-            f"TYTUŁ: "
-            f"{wpis['tytul']}"
+            f"\nMODUŁ:\n"
+            f"{ustalenie.module}"
         )
 
         print(
-            f"KATEGORIA: "
-            f"{wpis['kategoria']}"
+            f"\nPRIORYTET:\n"
+            f"{ustalenie.priority.value}"
         )
 
         print(
-            f"STATUS: "
-            f"{wpis['status']}"
+            f"\nSTATUS:\n"
+            f"{ustalenie.status.value}"
         )
 
         print(
-            f"WYKRYTO PRZEZ: "
-            f"{wpis['wykryto_przez']}"
+            f"\nŹRÓDŁOWY WPIS HISTORII:\n"
+            f"{ustalenie.source_entry_id}"
         )
 
         print(
-            f"\nOPIS:\n"
-            f"{wpis['opis']}"
+            f"\nWYKRYTY PROBLEM:\n"
+            f"{ustalenie.problem}"
         )
 
-        print("\nDOWODY:")
+        print("\nPODSTAWA ANALIZY:")
 
-        if wpis["dowody"]:
+        if ustalenie.evidence:
 
             for nr, dowod in enumerate(
-                wpis["dowody"],
+                ustalenie.evidence,
                 start=1,
             ):
                 print(
@@ -139,101 +96,64 @@ else:
 
         else:
             print(
-                "Brak zapisanych dowodów."
+                "Brak zapisanej podstawy analizy."
             )
 
-        print("\nWPROWADZONE ZMIANY:")
+        print("\nCZEGO JESZCZE NIE WIEM:")
 
-        if wpis["zmiany"]:
+        if ustalenie.unknowns:
 
-            for nr, zmiana in enumerate(
-                wpis["zmiany"],
+            for nr, niewiadoma in enumerate(
+                ustalenie.unknowns,
                 start=1,
             ):
                 print(
-                    f"{nr}. {zmiana}"
+                    f"{nr}. {niewiadoma}"
                 )
 
         else:
             print(
-                "Brak zapisanych zmian."
+                "Nie wykryto dodatkowych "
+                "braków informacji."
             )
 
-        print("\nWYNIKI TESTÓW:")
+        print("\nPROPONOWANY NASTĘPNY KROK:")
 
-        if wpis["wyniki_testow"]:
-
-            for nr, wynik in enumerate(
-                wpis["wyniki_testow"],
-                start=1,
-            ):
-                print(
-                    f"{nr}. {wynik}"
-                )
-
+        if ustalenie.proposed_next_step:
+            print(
+                ustalenie.proposed_next_step
+            )
         else:
             print(
-                "Brak zapisanych wyników testów."
+                "Nie przygotowano propozycji."
             )
 
-        print("\nNIEROZWIĄZANE KWESTIE:")
-
-        if wpis["nierozwiazane"]:
-
-            for nr, problem in enumerate(
-                wpis["nierozwiazane"],
-                start=1,
-            ):
-                print(
-                    f"{nr}. {problem}"
-                )
-
-        else:
-            print(
-                "Brak nierozwiązanych kwestii."
-            )
-
-        print(
-            f"\nUTWORZONO: "
-            f"{wpis['utworzono']}"
-        )
-
-        print(
-            f"ZAKTUALIZOWANO: "
-            f"{wpis['zaktualizowano']}"
-        )
-
-
-# =========================================================
-# STAN
-# =========================================================
 
 print("\n" + "=" * 70)
-print("STAN TRWAŁEJ PAMIĘCI FENIKSA")
+print("STAN MODUŁU SAMOANALIZY")
 print("=" * 70)
 
-stan = feniks.persistent_memory.status()
+statystyki = feniks.self_analysis.stats()
 
 print(
-    "PAMIĘĆ TRWAŁA GOTOWA: "
+    "MODUŁ SAMOANALIZY GOTOWY: "
     + (
         "TAK"
-        if stan["gotowa"]
+        if statystyki["modul_gotowy"]
         else "NIE"
     )
 )
 
 print(
-    f"TRWAŁE WSPOMNIENIA: "
-    f"{stan['liczba_wspomnien']}"
+    f"RAPORTY W BIEŻĄCEJ SESJI: "
+    f"{statystyki['liczba_raportow']}"
 )
 
 print(
-    f"TRWAŁE WPISY ROZWOJU: "
-    f"{stan['liczba_wpisow_rozwoju']}"
+    f"USTALENIA W BIEŻĄCEJ SESJI: "
+    f"{statystyki['liczba_ustalen']}"
 )
 
-print(
-    f"NIEROZWIĄZANE WPISY ROZWOJU: "
-    f"{stan['nierozwiazane_wpisy_rozwoju']}"
-)
+print("\n" + "=" * 70)
+print("SAMOANALIZA ZAKOŃCZONA")
+print("=" * 70)

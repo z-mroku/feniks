@@ -8,6 +8,7 @@ from core.guardian import Guardian
 from core.identity import Identity
 from core.memory import Memory
 from core.persistent_memory import PersistentMemory
+from core.self_analysis import SelfAnalysis
 from core.truth_engine import Claim, Evidence, TruthEngine
 
 
@@ -43,6 +44,11 @@ class Feniks:
 
         # Rejestr Rozwoju bieżącej sesji
         self.development_log = DevelopmentLog()
+
+        # Samoanaliza
+        self.self_analysis = SelfAnalysis(
+            persistent_memory=self.persistent_memory
+        )
 
         self.name = self.identity.name
         self.version = self.identity.version
@@ -99,8 +105,7 @@ class Feniks:
         action: str,
     ):
         """
-        Przekazuje planowane działanie
-        do Strażnika.
+        Przekazuje planowane działanie do Strażnika.
         """
 
         return self.guardian.evaluate(
@@ -252,8 +257,7 @@ class Feniks:
 
     def development_history(self):
         """
-        Odczytuje historię rozwoju
-        bieżącej sesji.
+        Odczytuje historię rozwoju bieżącej sesji.
         """
 
         return self.development_log.history()
@@ -271,21 +275,18 @@ class Feniks:
         do trwałej historii SQLite.
         """
 
-        return (
-            self.persistent_memory
-            .save_development_entry(
-                title=entry.title,
-                description=entry.description,
-                category=entry.category.value,
-                status=entry.status.value,
-                discovered_by=entry.discovered_by,
-                evidence=entry.evidence,
-                changes=entry.changes,
-                test_results=entry.test_results,
-                unresolved=entry.unresolved,
-                created_at=entry.created_at,
-                updated_at=entry.updated_at,
-            )
+        return self.persistent_memory.save_development_entry(
+            title=entry.title,
+            description=entry.description,
+            category=entry.category.value,
+            status=entry.status.value,
+            discovered_by=entry.discovered_by,
+            evidence=entry.evidence,
+            changes=entry.changes,
+            test_results=entry.test_results,
+            unresolved=entry.unresolved,
+            created_at=entry.created_at,
+            updated_at=entry.updated_at,
         )
 
     def permanent_development_history(
@@ -296,39 +297,48 @@ class Feniks:
         Odczytuje trwałą historię rozwoju.
         """
 
-        return (
-            self.persistent_memory
-            .development_history(
-                limit=limit
-            )
+        return self.persistent_memory.development_history(
+            limit=limit
         )
 
-    def unresolved_permanent_development(
-        self,
-    ):
+    def unresolved_permanent_development(self):
         """
         Odczytuje trwałe wpisy posiadające
         nierozwiązane kwestie.
         """
 
-        return (
-            self.persistent_memory
-            .unresolved_development()
-        )
+        return self.persistent_memory.unresolved_development()
+
+    # =====================================================
+    # SAMOANALIZA
+    # =====================================================
+
+    def analyze_self(self):
+        """
+        Uruchamia samoanalizę FENIKSA na podstawie
+        trwałej historii rozwoju.
+
+        Samoanaliza nie zmienia kodu systemu.
+        """
+
+        return self.self_analysis.analyze_development_history()
+
+    def last_self_analysis(self):
+        """
+        Zwraca ostatni raport samoanalizy
+        z bieżącej sesji.
+        """
+
+        return self.self_analysis.last_report()
 
     # =====================================================
     # PIERWSZE DOŚWIADCZENIE ROZWOJOWE
     # =====================================================
 
-    def create_first_development_experience(
-        self,
-    ):
+    def create_first_development_experience(self):
         """
         Tworzy pierwszy rzeczywisty wpis
         dotyczący rozwoju Silnika Prawdy.
-
-        Samo utworzenie wpisu nie oznacza jeszcze
-        trwałego zapisu.
         """
 
         entry = self.register_development(
@@ -370,8 +380,7 @@ class Feniks:
             entry,
             (
                 "Po zmianie to samo twierdzenie "
-                "otrzymało 94% pewności "
-                "zamiast 100%."
+                "otrzymało 94% pewności zamiast 100%."
             ),
         )
 
@@ -391,18 +400,13 @@ class Feniks:
 
         return entry
 
-    # Zachowujemy zgodność ze starszym kodem.
-    def register_first_development_experience(
-        self,
-    ):
+    def register_first_development_experience(self):
         """
-        Starsza nazwa metody zachowana
-        dla zgodności z wcześniejszym kodem.
+        Starsza nazwa zachowana dla zgodności
+        z wcześniejszym kodem.
         """
 
-        return (
-            self.create_first_development_experience()
-        )
+        return self.create_first_development_experience()
 
     # =====================================================
     # STAN SYSTEMU
@@ -413,21 +417,11 @@ class Feniks:
         Podstawowa samoobserwacja stanu FENIKSA.
         """
 
-        constitution_summary = (
-            self.constitution.summary()
-        )
-
-        truth_stats = (
-            self.truth_engine.stats()
-        )
-
-        development_stats = (
-            self.development_log.stats()
-        )
-
-        permanent_status = (
-            self.persistent_memory.status()
-        )
+        constitution_summary = self.constitution.summary()
+        truth_stats = self.truth_engine.stats()
+        development_stats = self.development_log.stats()
+        permanent_status = self.persistent_memory.status()
+        self_analysis_stats = self.self_analysis.stats()
 
         return {
             "nazwa": self.identity.name,
@@ -436,76 +430,46 @@ class Feniks:
             "wpisy_pamieci_roboczej":
                 self.memory.count(),
 
-            "tozsamosc_zaladowana":
-                True,
+            "tozsamosc_zaladowana": True,
 
-            "konstytucja_zaladowana":
-                True,
-
+            "konstytucja_zaladowana": True,
             "wersja_konstytucji":
-                constitution_summary[
-                    "version"
-                ],
-
+                constitution_summary["version"],
             "artykuly_konstytucji":
-                constitution_summary[
-                    "articles"
-                ],
+                constitution_summary["articles"],
 
-            "straznik_zaladowany":
-                True,
-
+            "straznik_zaladowany": True,
             "kontrole_straznika":
-                len(
-                    self.guardian.history()
-                ),
+                len(self.guardian.history()),
 
-            "silnik_prawdy_zaladowany":
-                True,
-
+            "silnik_prawdy_zaladowany": True,
             "twierdzenia":
-                truth_stats[
-                    "registered_claims"
-                ],
-
+                truth_stats["registered_claims"],
             "analizy_twierdzen":
-                truth_stats[
-                    "assessments"
-                ],
-
+                truth_stats["assessments"],
             "sprzecznosci":
-                truth_stats[
-                    "contradictions"
-                ],
-
+                truth_stats["contradictions"],
             "nierozstrzygniete":
-                truth_stats[
-                    "unresolved"
-                ],
+                truth_stats["unresolved"],
 
-            "rejestr_rozwoju_zaladowany":
-                True,
-
+            "rejestr_rozwoju_zaladowany": True,
             "wpisy_rozwoju_biezacej_sesji":
-                development_stats[
-                    "liczba_wpisow"
-                ],
+                development_stats["liczba_wpisow"],
 
-            "pamiec_trwala_zaladowana":
-                True,
-
+            "pamiec_trwala_zaladowana": True,
             "trwale_wspomnienia":
-                permanent_status[
-                    "liczba_wspomnien"
-                ],
-
+                permanent_status["liczba_wspomnien"],
             "trwale_wpisy_rozwoju":
-                permanent_status[
-                    "liczba_wpisow_rozwoju"
-                ],
-
+                permanent_status["liczba_wpisow_rozwoju"],
             "nierozwiazane_wpisy_rozwoju":
                 permanent_status[
                     "nierozwiazane_wpisy_rozwoju"
                 ],
+
+            "samoanaliza_zaladowana":
+                self_analysis_stats["modul_gotowy"],
+            "raporty_samoanalizy":
+                self_analysis_stats["liczba_raportow"],
+            "ustalenia_samoanalizy":
+                self_analysis_stats["liczba_ustalen"],
         }
