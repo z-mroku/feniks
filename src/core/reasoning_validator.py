@@ -147,9 +147,7 @@ class ReasoningValidator:
         result: ExperimentResult,
     ) -> ValidationReport:
 
-        hard_facts = self._build_hard_facts(
-            result
-        )
+        hard_facts = self._build_hard_facts(result)
 
         issues: List[ValidationIssue] = []
 
@@ -262,9 +260,7 @@ class ReasoningValidator:
                 ]
             )
 
-        for system_fact in (
-            self.system_knowledge.all_facts()
-        ):
+        for system_fact in self.system_knowledge.all_facts():
             if (
                 system_fact.evidence_type
                 == SystemEvidenceType.EXECUTION
@@ -305,9 +301,7 @@ class ReasoningValidator:
                 ValidationIssue(
                     source="hypothesis_status",
                     statement=(
-                        interpretation
-                        .hypothesis_status
-                        .value
+                        interpretation.hypothesis_status.value
                     ),
                     level=ValidationLevel.CONFLICT,
                     reason=(
@@ -327,9 +321,7 @@ class ReasoningValidator:
             ValidationIssue(
                 source="hypothesis_status",
                 statement=(
-                    interpretation
-                    .hypothesis_status
-                    .value
+                    interpretation.hypothesis_status.value
                 ),
                 level=ValidationLevel.SUPPORTED,
                 reason=(
@@ -419,6 +411,33 @@ class ReasoningValidator:
                     )
                     continue
 
+            if self._statement_mentions_confidence(
+                normalized
+            ):
+                confidence_growth = (
+                    self.system_knowledge.get(
+                        "truth.contradiction_confidence_growth"
+                    )
+                )
+
+                if confidence_growth is not None:
+                    issues.append(
+                        ValidationIssue(
+                            source="new_findings",
+                            statement=statement,
+                            level=ValidationLevel.SUPPORTED,
+                            reason=(
+                                "Zachowanie wskaźnika pewności "
+                                "zostało bezpośrednio zmierzone "
+                                "przez SystemKnowledge."
+                            ),
+                            related_fact=(
+                                "truth.contradiction_confidence_growth"
+                            ),
+                        )
+                    )
+                    continue
+
             issues.append(
                 ValidationIssue(
                     source="new_findings",
@@ -464,6 +483,18 @@ class ReasoningValidator:
         quantity_component = (
             self.system_knowledge.get(
                 "truth.quantity_component"
+            )
+        )
+
+        contradiction_confidence_rule = (
+            self.system_knowledge.get(
+                "truth.contradiction_confidence_rule"
+            )
+        )
+
+        confidence_growth = (
+            self.system_knowledge.get(
+                "truth.contradiction_confidence_growth"
             )
         )
 
@@ -594,6 +625,60 @@ class ReasoningValidator:
                     )
                     continue
 
+            # -----------------------------------------
+            # MECHANIZM PEWNOŚCI KLASYFIKACJI
+            # -----------------------------------------
+
+            if self._asks_about_confidence_behavior(
+                normalized
+            ):
+                if contradiction_confidence_rule is not None:
+                    issues.append(
+                        ValidationIssue(
+                            source="remaining_unknowns",
+                            statement=statement,
+                            level=(
+                                ValidationLevel.FALSE_UNKNOWN
+                            ),
+                            reason=(
+                                "To nie jest już niewiadoma. "
+                                "FENIKS zna aktualny wzór "
+                                "obliczania pewności dla stanu "
+                                "SPRZECZNOŚĆ. Pewność zależy od "
+                                "siły słabszej strony, równowagi "
+                                "między stronami oraz liczby "
+                                "obecnych dowodów. W badanym "
+                                "eksperymencie wzrost tych "
+                                "składników wyjaśnia wzrost "
+                                "classification_confidence."
+                            ),
+                            related_fact=(
+                                "truth.contradiction_confidence_rule"
+                            ),
+                        )
+                    )
+                    continue
+
+                if confidence_growth is not None:
+                    issues.append(
+                        ValidationIssue(
+                            source="remaining_unknowns",
+                            statement=statement,
+                            level=(
+                                ValidationLevel.FALSE_UNKNOWN
+                            ),
+                            reason=(
+                                "Zachowanie wskaźnika pewności "
+                                "zostało już bezpośrednio zmierzone "
+                                "przez SystemKnowledge."
+                            ),
+                            related_fact=(
+                                "truth.contradiction_confidence_growth"
+                            ),
+                        )
+                    )
+                    continue
+
             issues.append(
                 ValidationIssue(
                     source="remaining_unknowns",
@@ -631,6 +716,12 @@ class ReasoningValidator:
         quantity_component = (
             self.system_knowledge.get(
                 "truth.quantity_component"
+            )
+        )
+
+        contradiction_confidence_rule = (
+            self.system_knowledge.get(
+                "truth.contradiction_confidence_rule"
             )
         )
 
@@ -733,6 +824,34 @@ class ReasoningValidator:
                     continue
 
             # -----------------------------------------
+            # HIPOTEZA O MECHANIZMIE PEWNOŚCI
+            # -----------------------------------------
+
+            if self._claims_confidence_mechanism(
+                normalized
+            ):
+                if contradiction_confidence_rule is not None:
+                    issues.append(
+                        ValidationIssue(
+                            source="alternative_explanations",
+                            statement=statement,
+                            level=ValidationLevel.CODE_FACT,
+                            reason=(
+                                "Mechanizm pewności dla stanu "
+                                "SPRZECZNOŚĆ jest jawnie określony "
+                                "w aktualnej implementacji "
+                                "TruthEngine. Nie należy traktować "
+                                "znanych składników tego wzoru "
+                                "jako hipotezy."
+                            ),
+                            related_fact=(
+                                "truth.contradiction_confidence_rule"
+                            ),
+                        )
+                    )
+                    continue
+
+            # -----------------------------------------
             # TWIERDZENIE O NIEWIDOCZNEJ REGULE
             # -----------------------------------------
 
@@ -797,6 +916,49 @@ class ReasoningValidator:
             )
         )
 
+    def _statement_mentions_confidence(
+        self,
+        text: str,
+    ) -> bool:
+
+        return any(
+            phrase in text
+            for phrase in (
+                "pewność",
+                "pewnosc",
+                "wskaźnik pewności",
+                "wskaznik pewnosci",
+                "classification_confidence",
+                "confidence",
+            )
+        )
+
+    def _asks_about_confidence_behavior(
+        self,
+        text: str,
+    ) -> bool:
+
+        if not self._statement_mentions_confidence(text):
+            return False
+
+        uncertainty_or_cause = any(
+            phrase in text
+            for phrase in (
+                "nie wiadomo",
+                "dlaczego",
+                "czemu",
+                "przyczyn",
+                "zachowuje",
+                "zachowanie",
+                "rośnie",
+                "rosnie",
+                "maleje",
+                "zmienia",
+            )
+        )
+
+        return uncertainty_or_cause
+
     def _asks_about_contradiction_threshold(
         self,
         text: str,
@@ -826,9 +988,7 @@ class ReasoningValidator:
     ) -> bool:
 
         return (
-            self._statement_mentions_saturation(
-                text
-            )
+            self._statement_mentions_saturation(text)
             and any(
                 word in text
                 for word in (
@@ -885,6 +1045,36 @@ class ReasoningValidator:
         )
 
         return contradiction and presence
+
+    def _claims_confidence_mechanism(
+        self,
+        text: str,
+    ) -> bool:
+
+        if not self._statement_mentions_confidence(text):
+            return False
+
+        mechanism = any(
+            word in text
+            for word in (
+                "mechanizm",
+                "wzór",
+                "wzor",
+                "reguł",
+                "regul",
+                "zależy",
+                "zalezy",
+                "oblicz",
+                "składnik",
+                "skladnik",
+                "równowag",
+                "rownowag",
+                "słabsz",
+                "slabsz",
+            )
+        )
+
+        return mechanism
 
     def _claims_hidden_aggregation_rule(
         self,

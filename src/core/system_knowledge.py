@@ -15,14 +15,6 @@ class SystemEvidenceType(Enum):
     """
     Określa sposób, w jaki FENIKS zdobył wiedzę
     o własnym działaniu.
-
-    EXECUTION:
-        Fakt został ustalony przez rzeczywiste
-        wykonanie kodu systemu.
-
-    CODE_INSPECTION:
-        Fakt wynika bezpośrednio z jawnej reguły
-        zapisanej w implementacji systemu.
     """
 
     EXECUTION = "WYKONANIE"
@@ -33,9 +25,6 @@ class SystemEvidenceType(Enum):
 class SystemFact:
     """
     Zweryfikowany fakt o działaniu FENIKSA.
-
-    Fakt przechowuje nie tylko wartość,
-    ale również pochodzenie wiedzy.
     """
 
     key: str
@@ -53,15 +42,11 @@ class SystemKnowledge:
     """
     Warstwa jawnej samowiedzy FENIKSA.
 
-    Rozdziela dwa sposoby zdobywania wiedzy:
+    Hierarchia źródeł:
 
-    1. WYKONANIE
-       FENIKS uruchamia własny kod na
-       kontrolowanych danych i obserwuje wynik.
-
-    2. INSPEKCJA KODU
-       FENIKS zapisuje jawne reguły wynikające
-       bezpośrednio z aktualnej implementacji.
+    1. rzeczywiste wykonanie kodu,
+    2. inspekcja aktualnej implementacji,
+    3. dopiero później interpretacja modelu.
 
     Model językowy nie jest źródłem faktów
     systemowych.
@@ -92,6 +77,7 @@ class SystemKnowledge:
             self._inspect_two_sided_evidence(),
             self._inspect_quantity_saturation(),
             self._inspect_zero_reliability_evidence(),
+            self._inspect_contradiction_confidence_growth(),
 
             # -----------------------------------------
             # FAKTY Z INSPEKCJI IMPLEMENTACJI
@@ -99,6 +85,10 @@ class SystemKnowledge:
             self._inspect_contradiction_rule(),
             self._inspect_quantity_component_rule(),
             self._inspect_two_sided_presence_rule(),
+            self._inspect_contradiction_confidence_rule(),
+            self._inspect_support_confidence_rule(),
+            self._inspect_opposition_confidence_rule(),
+            self._inspect_no_evidence_confidence_rule(),
         ]
 
         for fact in discovered:
@@ -114,23 +104,14 @@ class SystemKnowledge:
         self,
         key: str,
     ) -> SystemFact | None:
-        """
-        Zwraca fakt systemowy o podanym kluczu.
-        """
 
         return self.facts.get(key)
 
     def all_facts(self) -> List[SystemFact]:
-        """
-        Zwraca wszystkie aktualnie zapisane fakty.
-        """
 
         return list(self.facts.values())
 
     def execution_facts(self) -> List[SystemFact]:
-        """
-        Zwraca fakty ustalone przez wykonanie kodu.
-        """
 
         return [
             fact
@@ -142,10 +123,6 @@ class SystemKnowledge:
     def code_inspection_facts(
         self,
     ) -> List[SystemFact]:
-        """
-        Zwraca fakty wynikające z inspekcji
-        aktualnej implementacji.
-        """
 
         return [
             fact
@@ -159,9 +136,6 @@ class SystemKnowledge:
     # =====================================================
 
     def _new_claim(self) -> Claim:
-        """
-        Tworzy neutralne twierdzenie kontrolne.
-        """
 
         return Claim(
             content=(
@@ -179,14 +153,9 @@ class SystemKnowledge:
         supports: bool,
         number: int,
     ) -> Evidence:
-        """
-        Tworzy kontrolowany dowód testowy.
-        """
 
         return Evidence(
-            description=(
-                f"Dowód kontrolny {number}"
-            ),
+            description=f"Dowód kontrolny {number}",
             source="SystemKnowledge",
             source_type=SourceType.SYSTEM,
             reliability=reliability,
@@ -200,9 +169,6 @@ class SystemKnowledge:
     def _inspect_no_evidence(
         self,
     ) -> SystemFact:
-        """
-        Sprawdza zachowanie bez dowodów.
-        """
 
         engine = TruthEngine()
         claim = self._new_claim()
@@ -211,10 +177,15 @@ class SystemKnowledge:
 
         return SystemFact(
             key="truth.no_evidence_classification",
-            value=result.classification.value,
+            value={
+                "classification":
+                    result.classification.value,
+                "confidence":
+                    result.classification_confidence,
+            },
             description=(
-                "Klasyfikacja twierdzenia "
-                "bez żadnych dowodów."
+                "Klasyfikacja i pewność klasyfikacji "
+                "twierdzenia bez żadnych dowodów."
             ),
             evidence_type=(
                 SystemEvidenceType.EXECUTION
@@ -225,10 +196,6 @@ class SystemKnowledge:
         self,
         reliability: float,
     ) -> SystemFact:
-        """
-        Sprawdza zachowanie pojedynczego
-        dowodu wspierającego.
-        """
 
         engine = TruthEngine()
         claim = self._new_claim()
@@ -256,10 +223,8 @@ class SystemKnowledge:
             value={
                 "classification":
                     result.classification.value,
-
                 "support_strength":
                     result.support_strength,
-
                 "confidence":
                     result.classification_confidence,
             },
@@ -276,10 +241,6 @@ class SystemKnowledge:
     def _inspect_opposition_only(
         self,
     ) -> SystemFact:
-        """
-        Sprawdza zachowanie pojedynczego
-        dowodu przeciwnego.
-        """
 
         engine = TruthEngine()
         claim = self._new_claim()
@@ -300,17 +261,15 @@ class SystemKnowledge:
             value={
                 "classification":
                     result.classification.value,
-
                 "opposition_strength":
                     result.opposition_strength,
-
                 "confidence":
                     result.classification_confidence,
             },
             description=(
-                "Zachowanie TruthEngine przy "
-                "istnieniu wyłącznie jednego "
-                "mocnego dowodu przeciwnego."
+                "Zachowanie TruthEngine przy istnieniu "
+                "wyłącznie jednego mocnego dowodu "
+                "przeciwnego."
             ),
             evidence_type=(
                 SystemEvidenceType.EXECUTION
@@ -320,10 +279,6 @@ class SystemKnowledge:
     def _inspect_two_sided_evidence(
         self,
     ) -> SystemFact:
-        """
-        Sprawdza zachowanie przy mocnym dowodzie ZA
-        i bardzo słabym dowodzie PRZECIW.
-        """
 
         engine = TruthEngine()
         claim = self._new_claim()
@@ -353,15 +308,14 @@ class SystemKnowledge:
             value={
                 "classification":
                     result.classification.value,
-
                 "contradiction_detected":
                     result.contradiction_detected,
-
                 "support_strength":
                     result.support_strength,
-
                 "opposition_strength":
                     result.opposition_strength,
+                "confidence":
+                    result.classification_confidence,
             },
             description=(
                 "Kontrolny test jednego mocnego "
@@ -376,10 +330,6 @@ class SystemKnowledge:
     def _inspect_quantity_saturation(
         self,
     ) -> SystemFact:
-        """
-        Sprawdza wpływ liczby identycznych dowodów
-        na siłę jednej strony.
-        """
 
         strengths: Dict[int, float] = {}
 
@@ -387,10 +337,7 @@ class SystemKnowledge:
             engine = TruthEngine()
             claim = self._new_claim()
 
-            for number in range(
-                1,
-                count + 1,
-            ):
+            for number in range(1, count + 1):
                 engine.add_evidence(
                     claim,
                     self._evidence(
@@ -411,10 +358,7 @@ class SystemKnowledge:
         for count in range(1, 7):
             remaining = [
                 strengths[n]
-                for n in range(
-                    count,
-                    7,
-                )
+                for n in range(count, 7)
             ]
 
             if len(set(remaining)) == 1:
@@ -439,13 +383,6 @@ class SystemKnowledge:
     def _inspect_zero_reliability_evidence(
         self,
     ) -> SystemFact:
-        """
-        Sprawdza szczególny przypadek:
-
-        jeden mocny dowód ZA
-        oraz jeden dowód PRZECIW
-        o wiarygodności dokładnie 0.0.
-        """
 
         engine = TruthEngine()
         claim = self._new_claim()
@@ -474,26 +411,88 @@ class SystemKnowledge:
             key="truth.zero_reliability_evidence",
             value={
                 "input_reliability": 0.0,
-
                 "classification":
                     result.classification.value,
-
                 "contradiction_detected":
                     result.contradiction_detected,
-
                 "support_strength":
                     result.support_strength,
-
                 "opposition_strength":
                     result.opposition_strength,
-
                 "opposing_evidence":
                     result.opposing_evidence,
+                "confidence":
+                    result.classification_confidence,
             },
             description=(
                 "Rzeczywiste zachowanie TruthEngine "
                 "po dodaniu dowodu przeciwnego "
                 "o wiarygodności dokładnie 0.0."
+            ),
+            evidence_type=(
+                SystemEvidenceType.EXECUTION
+            ),
+        )
+
+    def _inspect_contradiction_confidence_growth(
+        self,
+    ) -> SystemFact:
+        """
+        Mierzy zmianę pewności klasyfikacji
+        SPRZECZNOŚĆ przy rosnącej liczbie
+        przeciętnych dowodów przeciwnych.
+        """
+
+        observations: Dict[int, Dict[str, float]] = {}
+
+        for opposing_count in range(1, 5):
+            engine = TruthEngine()
+            claim = self._new_claim()
+
+            engine.add_evidence(
+                claim,
+                self._evidence(
+                    reliability=0.95,
+                    supports=True,
+                    number=1,
+                ),
+            )
+
+            for number in range(
+                1,
+                opposing_count + 1,
+            ):
+                engine.add_evidence(
+                    claim,
+                    self._evidence(
+                        reliability=0.50,
+                        supports=False,
+                        number=number + 1,
+                    ),
+                )
+
+            result = engine.assess(claim)
+
+            observations[opposing_count] = {
+                "support_strength":
+                    result.support_strength,
+                "opposition_strength":
+                    result.opposition_strength,
+                "confidence":
+                    result.classification_confidence,
+            }
+
+        return SystemFact(
+            key="truth.contradiction_confidence_growth",
+            value={
+                "opposing_count_to_result":
+                    observations,
+            },
+            description=(
+                "Rzeczywista zmiana pewności klasyfikacji "
+                "SPRZECZNOŚĆ przy jednym mocnym dowodzie ZA "
+                "i rosnącej liczbie przeciętnych dowodów "
+                "PRZECIW."
             ),
             evidence_type=(
                 SystemEvidenceType.EXECUTION
@@ -507,13 +506,6 @@ class SystemKnowledge:
     def _inspect_contradiction_rule(
         self,
     ) -> SystemFact:
-        """
-        Jawna reguła obecnej implementacji _classify().
-
-        Obecność co najmniej jednego dowodu
-        po obu stronach powoduje klasyfikację
-        SPRZECZNOŚĆ.
-        """
 
         return SystemFact(
             key="truth.contradiction_rule",
@@ -538,12 +530,6 @@ class SystemKnowledge:
     def _inspect_quantity_component_rule(
         self,
     ) -> SystemFact:
-        """
-        Jawna reguła _calculate_side_strength().
-
-        Siła strony zawiera składnik jakościowy
-        oraz składnik ilościowy.
-        """
 
         return SystemFact(
             key="truth.quantity_component",
@@ -558,9 +544,7 @@ class SystemKnowledge:
                 "łączy średnią wiarygodność z wagą "
                 "0.85 oraz czynnik ilościowy z wagą "
                 "0.15. Czynnik ilościowy osiąga "
-                "maksimum przy trzech dowodach. "
-                "Jeden zapisany dowód wnosi składnik "
-                "ilościowy równy 0.05."
+                "maksimum przy trzech dowodach."
             ),
             source=(
                 "TruthEngine._calculate_side_strength"
@@ -573,31 +557,139 @@ class SystemKnowledge:
     def _inspect_two_sided_presence_rule(
         self,
     ) -> SystemFact:
-        """
-        Jawna reguła contradiction_detected.
-
-        Flaga zależy od obecności elementów
-        w obu listach, a nie od ich siły.
-        """
 
         return SystemFact(
             key="truth.two_sided_presence_rule",
             value={
-                "rule": (
-                    "bool(supporting) "
-                    "and bool(opposing)"
-                ),
+                "rule":
+                    "bool(supporting) and bool(opposing)",
                 "uses_reliability": False,
                 "uses_support_strength": False,
                 "uses_opposition_strength": False,
             },
             description=(
-                "Flaga contradiction_detected "
-                "w aktualnej implementacji zależy "
-                "wyłącznie od niepustości list "
-                "supporting i opposing."
+                "Flaga contradiction_detected zależy "
+                "wyłącznie od obecności dowodów "
+                "po obu stronach."
             ),
             source="TruthEngine.assess",
+            evidence_type=(
+                SystemEvidenceType.CODE_INSPECTION
+            ),
+        )
+
+    def _inspect_contradiction_confidence_rule(
+        self,
+    ) -> SystemFact:
+        """
+        Jawny wzór pewności klasyfikacji
+        dla stanu SPRZECZNOŚĆ.
+        """
+
+        return SystemFact(
+            key="truth.contradiction_confidence_rule",
+            value={
+                "weaker_side_weight": 0.50,
+                "balance_weight": 0.30,
+                "evidence_presence_weight": 0.20,
+                "balance_formula":
+                    "weaker_side / stronger_side",
+                "evidence_presence_formula":
+                    "min(total_evidence / 4.0, 1.0)",
+                "evidence_presence_saturation_count": 4,
+            },
+            description=(
+                "Pewność klasyfikacji SPRZECZNOŚĆ "
+                "jest sumą trzech składników: "
+                "50% siły słabszej strony, "
+                "30% równowagi między stronami oraz "
+                "20% wskaźnika obecności dowodów. "
+                "Składnik obecności dowodów osiąga "
+                "maksimum przy czterech dowodach łącznie."
+            ),
+            source=(
+                "TruthEngine."
+                "_calculate_classification_confidence"
+            ),
+            evidence_type=(
+                SystemEvidenceType.CODE_INSPECTION
+            ),
+        )
+
+    def _inspect_support_confidence_rule(
+        self,
+    ) -> SystemFact:
+
+        return SystemFact(
+            key="truth.support_confidence_rule",
+            value={
+                "support_strength_weight": 0.85,
+                "quantity_weight": 0.15,
+                "quantity_saturation_count": 3,
+            },
+            description=(
+                "Przy wyłącznie dowodach wspierających "
+                "pewność klasyfikacji składa się w 85% "
+                "z siły poparcia i w 15% z czynnika "
+                "ilościowego, który osiąga maksimum "
+                "przy trzech dowodach."
+            ),
+            source=(
+                "TruthEngine."
+                "_calculate_classification_confidence"
+            ),
+            evidence_type=(
+                SystemEvidenceType.CODE_INSPECTION
+            ),
+        )
+
+    def _inspect_opposition_confidence_rule(
+        self,
+    ) -> SystemFact:
+
+        return SystemFact(
+            key="truth.opposition_confidence_rule",
+            value={
+                "opposition_strength_weight": 0.85,
+                "quantity_weight": 0.15,
+                "quantity_saturation_count": 3,
+            },
+            description=(
+                "Przy wyłącznie dowodach przeciwnych "
+                "pewność klasyfikacji składa się w 85% "
+                "z siły sprzeciwu i w 15% z czynnika "
+                "ilościowego, który osiąga maksimum "
+                "przy trzech dowodach."
+            ),
+            source=(
+                "TruthEngine."
+                "_calculate_classification_confidence"
+            ),
+            evidence_type=(
+                SystemEvidenceType.CODE_INSPECTION
+            ),
+        )
+
+    def _inspect_no_evidence_confidence_rule(
+        self,
+    ) -> SystemFact:
+
+        return SystemFact(
+            key="truth.no_evidence_confidence_rule",
+            value={
+                "without_initial_confidence": 0.0,
+                "initial_confidence_multiplier": 0.25,
+            },
+            description=(
+                "Przy braku dowodów pewność klasyfikacji "
+                "wynosi 0.0, chyba że twierdzenie posiada "
+                "początkową wartość confidence. Wtedy "
+                "TruthEngine wykorzystuje 25% tej wartości."
+            ),
+            source=(
+                "TruthEngine."
+                "_calculate_classification_confidence"
+            ),
             evidence_type=(
                 SystemEvidenceType.CODE_INSPECTION
             ),
