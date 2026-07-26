@@ -1,11 +1,20 @@
-﻿from core.constitution import Constitution
+from core.cognitive_cycle import (
+    CognitiveCycle,
+    CognitiveCycleResult,
+)
+from core.constitution import Constitution
 from core.development_log import (
     DevelopmentCategory,
     DevelopmentLog,
     DevelopmentStatus,
 )
 from core.experiment_runner import ExperimentResult, ExperimentRunner
+from core.experiment_interpreter import GeminiExperimentInterpreter
 from core.guardian import Guardian
+from core.knowledge_gate import (
+    KnowledgeAdmissionResult,
+    KnowledgeGate,
+)
 from core.identity import Identity
 from core.memory import Memory
 from core.persistent_memory import PersistentMemory
@@ -84,6 +93,26 @@ class Feniks:
         # - wiedzy uzyskanej z inspekcji kodu.
         self.reasoning_validator = ReasoningValidator(
             system_knowledge=self.system_knowledge
+        )
+
+        # Produkcyjna warstwa interpretacji eksperymentów.
+        # Interpreter proponuje interpretację,
+        # ale nie podejmuje końcowej decyzji o wiedzy.
+        self.experiment_interpreter = GeminiExperimentInterpreter()
+
+        # Pełny cykl poznawczy:
+        # eksperyment -> interpretacja -> walidacja.
+        self.cognitive_cycle = CognitiveCycle(
+            interpreter=self.experiment_interpreter,
+            system_knowledge=self.system_knowledge,
+            experiment_runner=self.experiment_runner,
+            reasoning_validator=self.reasoning_validator,
+        )
+
+        # Brama Wiedzy jest kontrolowanym przejściem
+        # od kandydata do wiedzy do trwałej pamięci.
+        self.knowledge_gate = KnowledgeGate(
+            persistent_memory=self.persistent_memory
         )
 
         self.name = self.identity.name
@@ -466,6 +495,58 @@ class Feniks:
         )
 
     # =====================================================
+    # PEŁNY CYKL POZNAWCZY
+    # =====================================================
+
+    def run_cognitive_cycle(
+        self,
+        hypothesis: str,
+        strong_support_reliability: float = 0.95,
+        opposing_reliability: float = 0.50,
+        max_opposing: int = 20,
+    ) -> CognitiveCycleResult:
+        """
+        Uruchamia pełny cykl poznawczy FENIKSA:
+
+        eksperyment -> interpretacja -> walidacja.
+
+        Poprawny wynik może stać się kandydatem
+        do wiedzy, ale ta metoda nie zapisuje go
+        automatycznie do trwałej pamięci.
+        """
+
+        return self.cognitive_cycle.run_quantity_vs_quality(
+            hypothesis=hypothesis,
+            strong_support_reliability=strong_support_reliability,
+            opposing_reliability=opposing_reliability,
+            max_opposing=max_opposing,
+        )
+
+    # =====================================================
+    # BRAMA WIEDZY
+    # =====================================================
+
+    def admit_knowledge(
+        self,
+        cycle_result: CognitiveCycleResult,
+        title: str,
+    ) -> KnowledgeAdmissionResult:
+        """
+        Przekazuje wynik cyklu poznawczego
+        do Bramy Wiedzy.
+
+        Brama ponownie sprawdza warunki przyjęcia.
+        Dopiero pozytywna decyzja Bramy może
+        spowodować zapis zweryfikowanej wiedzy
+        do trwałej pamięci.
+        """
+
+        return self.knowledge_gate.admit(
+            cycle_result=cycle_result,
+            title=title,
+        )
+
+    # =====================================================
     # PIERWSZE DOĹšWIADCZENIE ROZWOJOWE
     # =====================================================
 
@@ -631,4 +712,8 @@ class Feniks:
                 len(self.experiment_runner.experiments),
 
             "walidator_rozumowania_zaladowany": True,
+
+            "interpreter_eksperymentow_zaladowany": True,
+            "cykl_poznawczy_zaladowany": True,
+            "brama_wiedzy_zaladowana": True,
         }
