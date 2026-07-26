@@ -1,235 +1,140 @@
-from core.feniks import Feniks
+from core.reasoning_engine import (
+    ReasoningEngine,
+    ReasoningProblem,
+)
 
-
-feniks = Feniks()
 
 print("=" * 70)
-print(feniks.start())
+print("PIERWSZY TEST SILNIKA ROZUMOWANIA FENIKSA")
 print("=" * 70)
 
-print("\nTEST NOWEJ SAMOANALIZY")
+engine = ReasoningEngine()
+
+
+problem = ReasoningProblem(
+    title="Duża liczba przeciętnych dowodów",
+    description=(
+        "Nie wiadomo, czy duża liczba przeciętnych "
+        "dowodów może niesłusznie zdominować jeden "
+        "dowód bardzo wysokiej jakości."
+    ),
+    evidence=[
+        (
+            "Zaobserwowano możliwość wpływu liczby "
+            "dowodów na końcową ocenę."
+        )
+    ],
+    unknowns=[
+        (
+            "Nie wiadomo, jaka powinna być relacja "
+            "pomiędzy liczbą dowodów a ich jakością."
+        )
+    ],
+    history=[
+        (
+            "Wcześniej rozdzielono siłę poparcia, "
+            "siłę sprzeciwu i pewność klasyfikacji."
+        )
+    ],
+)
+
+
+result = engine.analyze(problem)
+
+
+print("\nPROBLEM")
+print("-" * 70)
+print(problem.title)
+
+print("\nZNANE FAKTY")
 print("-" * 70)
 
-# =========================================================
-# 1. STAN PRZED TESTEM
-# =========================================================
-
-historia_przed = feniks.permanent_development_history()
-nierozwiazane_przed = feniks.unresolved_permanent_development()
-
-print(f"\nWSZYSTKIE WPISY PRZED TESTEM: {len(historia_przed)}")
-print(f"NIEROZWIĄZANE PRZED TESTEM: {len(nierozwiazane_przed)}")
+for item in result.known_facts:
+    print(f"- {item}")
 
 
-# =========================================================
-# 2. SAMOANALIZA
-# =========================================================
+print("\nNIEWIADOME")
+print("-" * 70)
 
-raport = feniks.analyze_self()
-
-print("\n" + "=" * 70)
-print("WYNIK SAMOANALIZY")
-print("=" * 70)
-
-print(f"\nLICZBA USTALEŃ: {raport.number_of_findings}")
-print(
-    "WYMAGA UWAGI: "
-    + ("TAK" if raport.requires_attention else "NIE")
-)
+for item in result.unknowns:
+    print(f"- {item}")
 
 
-# =========================================================
-# 3. ODNALEZIENIE PROBLEMÓW NR 2 I NR 3
-# =========================================================
-
-problem_2 = next(
-    (
-        finding
-        for finding in raport.findings
-        if finding.source_entry_id == 2
-    ),
-    None,
-)
-
-problem_3 = next(
-    (
-        finding
-        for finding in raport.findings
-        if finding.source_entry_id == 3
-    ),
-    None,
-)
-
-if problem_2 is None:
-    raise RuntimeError(
-        "Samoanaliza nie znalazła problemu nr 2."
-    )
-
-if problem_3 is None:
-    raise RuntimeError(
-        "Samoanaliza nie znalazła problemu nr 3."
-    )
+print("\nPRZEDMIOT BADANIA")
+print("-" * 70)
+print(result.subject or "NIEUSTALONE")
 
 
-# =========================================================
-# 4. PROBLEM NR 2
-# =========================================================
-
-print("\n" + "=" * 70)
-print("PROBLEM NR 2")
-print("=" * 70)
-
-print(f"\nTYTUŁ:\n{problem_2.title}")
-
-print(
-    f"\nPROBLEM:\n"
-    f"{problem_2.problem}"
-)
-
-print(
-    f"\nPROPONOWANY NASTĘPNY KROK:\n"
-    f"{problem_2.proposed_next_step}"
-)
+print("\nZMIENNA BADANA")
+print("-" * 70)
+print(result.variable_under_test or "NIEUSTALONE")
 
 
-# =========================================================
-# 5. PROBLEM NR 3
-# =========================================================
-
-print("\n" + "=" * 70)
-print("PROBLEM NR 3")
-print("=" * 70)
-
-print(f"\nTYTUŁ:\n{problem_3.title}")
-
-print(
-    f"\nPROBLEM:\n"
-    f"{problem_3.problem}"
-)
-
-print(
-    f"\nPROPONOWANY NASTĘPNY KROK:\n"
-    f"{problem_3.proposed_next_step}"
-)
+print("\nEKSPERYMENT")
+print("-" * 70)
+print(result.experiment or "NIEUSTALONE")
 
 
-# =========================================================
-# 6. TEST RÓŻNICOWANIA
-# =========================================================
+print("\nOGRANICZENIA")
+print("-" * 70)
 
-krok_2 = (
-    problem_2.proposed_next_step
-    or ""
-)
-
-krok_3 = (
-    problem_3.proposed_next_step
-    or ""
-)
-
-rozne_kroki = (
-    krok_2.casefold()
-    != krok_3.casefold()
-)
-
-problem_2_dotyczy_testow_dowodow = (
-    "różnych poziomach" in krok_2.casefold()
-    and "wiarygodności" in krok_2.casefold()
-)
-
-problem_3_dotyczy_samoanalizy = (
-    "kilku różnych nierozwiązanych problemach"
-    in krok_3.casefold()
-    and "zamiast jednej odpowiedzi"
-    in krok_3.casefold()
-)
+for item in result.limitations:
+    print(f"- {item}")
 
 
 print("\n" + "=" * 70)
-print("TEST RÓŻNICOWANIA")
+print("KONTROLA UCZCIWOŚCI ROZUMOWANIA")
 print("=" * 70)
 
-print(
-    "\nRÓŻNE PROBLEMY OTRZYMAŁY RÓŻNE KROKI: "
-    + ("TAK" if rozne_kroki else "NIE")
+nie_zgaduje = (
+    result.subject is None
+    and result.variable_under_test is None
+    and result.experiment is None
 )
 
 print(
-    "PROBLEM NR 2 OTRZYMAŁ TEST WIARYGODNOŚCI DOWODÓW: "
+    "\nSILNIK ODMÓWIŁ ZGADYWANIA: "
+    + ("TAK" if nie_zgaduje else "NIE")
+)
+
+print(
+    "GOTOWY DO EKSPERYMENTU: "
+    + ("TAK" if result.ready_for_experiment else "NIE")
+)
+
+stats = engine.stats()
+
+print(
+    f"LICZBA WYKONANYCH ANALIZ: "
+    f"{stats['liczba_analiz']}"
+)
+
+print(
+    "INTERPRETACJA SEMANTYCZNA: "
     + (
         "TAK"
-        if problem_2_dotyczy_testow_dowodow
-        else "NIE"
-    )
-)
-
-print(
-    "PROBLEM NR 3 OTRZYMAŁ TEST SAMOANALIZY: "
-    + (
-        "TAK"
-        if problem_3_dotyczy_samoanalizy
+        if stats["interpretacja_semantyczna"]
         else "NIE"
     )
 )
 
 
-# =========================================================
-# 7. SPRAWDZENIE, CZY TEST NIE ZMIENIŁ BAZY
-# =========================================================
-
-historia_po = feniks.permanent_development_history()
-nierozwiazane_po = feniks.unresolved_permanent_development()
-
-baza_bez_zmian = (
-    len(historia_przed) == len(historia_po)
-    and len(nierozwiazane_przed) == len(nierozwiazane_po)
-)
-
-
-print("\n" + "=" * 70)
-print("KONTROLA PAMIĘCI")
-print("=" * 70)
-
-print(
-    f"\nWSZYSTKIE WPISY PO TEŚCIE: "
-    f"{len(historia_po)}"
-)
-
-print(
-    f"NIEROZWIĄZANE PO TEŚCIE: "
-    f"{len(nierozwiazane_po)}"
-)
-
-print(
-    "BAZA POZOSTAŁA BEZ ZMIAN: "
-    + ("TAK" if baza_bez_zmian else "NIE")
-)
-
-
-# =========================================================
-# 8. WERDYKT
-# =========================================================
-
-test_zaliczony = (
-    raport.number_of_findings == 2
-    and rozne_kroki
-    and problem_2_dotyczy_testow_dowodow
-    and problem_3_dotyczy_samoanalizy
-    and baza_bez_zmian
-)
-
-
 print("\n" + "=" * 70)
 
-if test_zaliczony:
+if (
+    nie_zgaduje
+    and not result.ready_for_experiment
+    and stats["liczba_analiz"] == 1
+    and not stats["interpretacja_semantyczna"]
+):
     print(
-        "WERDYKT: NOWA SAMOANALIZA "
-        "PRZESZŁA TEST PORÓWNAWCZY"
+        "WERDYKT: SILNIK ROZUMOWANIA "
+        "POPRAWNIE ROZPOZNAJE GRANICE SWOJEJ WIEDZY"
     )
 else:
     print(
-        "WERDYKT: NOWA SAMOANALIZA "
-        "WYMAGA DALSZEJ ANALIZY"
+        "WERDYKT: SILNIK ROZUMOWANIA "
+        "NIE PRZESZEDŁ TESTU"
     )
 
 print("=" * 70)
