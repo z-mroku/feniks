@@ -1,4 +1,10 @@
 from core.feniks import Feniks
+from core.truth_engine import (
+    Claim,
+    Evidence,
+    KnowledgeType,
+    SourceType,
+)
 
 
 feniks = Feniks()
@@ -7,153 +13,294 @@ print("=" * 70)
 print(feniks.start())
 print("=" * 70)
 
-print("\nSAMOANALIZA FENIKSA")
+print("\nTEST NOWEGO SILNIKA PRAWDY")
 print("-" * 70)
 
-print(
-    "\nFENIKS analizuje trwałą historię "
-    "swojego rozwoju..."
-)
 
-raport = feniks.analyze_self()
+def pokaz_wynik(numer, ocena):
+    """
+    Czytelnie wyświetla wynik analizy.
+    """
 
-print(
-    f"\nLICZBA WYKRYTYCH PROBLEMÓW: "
-    f"{raport.number_of_findings}"
-)
-
-print(
-    "WYMAGA UWAGI: "
-    + (
-        "TAK"
-        if raport.requires_attention
-        else "NIE"
-    )
-)
-
-
-if raport.number_of_findings == 0:
+    print("\n" + "=" * 70)
+    print(f"TEST {numer}")
+    print("=" * 70)
 
     print(
-        "\nNie znaleziono nierozwiązanych "
-        "problemów wymagających analizy."
+        f"\nTWIERDZENIE:\n"
+        f"{ocena.claim.content}"
     )
 
-else:
+    print(
+        f"\nKLASYFIKACJA:\n"
+        f"{ocena.classification.value}"
+    )
 
-    for numer, ustalenie in enumerate(
-        raport.findings,
-        start=1,
-    ):
+    print(
+        f"\nSIŁA POPARCIA:\n"
+        f"{ocena.support_strength * 100:.1f}%"
+    )
 
-        print("\n" + "=" * 70)
-        print(
-            f"USTALENIE SAMOANALIZY {numer}"
+    print(
+        f"\nSIŁA SPRZECIWU:\n"
+        f"{ocena.opposition_strength * 100:.1f}%"
+    )
+
+    print(
+        f"\nPEWNOŚĆ KLASYFIKACJI:\n"
+        f"{ocena.classification_confidence * 100:.1f}%"
+    )
+
+    print(
+        f"\nDOWODY ZA:\n"
+        f"{ocena.supporting_evidence}"
+    )
+
+    print(
+        f"\nDOWODY PRZECIW:\n"
+        f"{ocena.opposing_evidence}"
+    )
+
+    print(
+        "\nSPRZECZNOŚĆ:\n"
+        + (
+            "TAK"
+            if ocena.contradiction_detected
+            else "NIE"
         )
-        print("=" * 70)
+    )
 
-        print(
-            f"\nTYTUŁ:\n"
-            f"{ustalenie.title}"
+    print(
+        "\nPOTRZEBA WIĘCEJ DOWODÓW:\n"
+        + (
+            "TAK"
+            if ocena.requires_more_evidence
+            else "NIE"
         )
+    )
 
-        print(
-            f"\nMODUŁ:\n"
-            f"{ustalenie.module}"
-        )
+    print(
+        f"\nUZASADNIENIE:\n"
+        f"{ocena.explanation}"
+    )
 
-        print(
-            f"\nPRIORYTET:\n"
-            f"{ustalenie.priority.value}"
-        )
 
-        print(
-            f"\nSTATUS:\n"
-            f"{ustalenie.status.value}"
-        )
+# =========================================================
+# TEST 1
+# BRAK DOWODÓW
+# =========================================================
 
-        print(
-            f"\nŹRÓDŁOWY WPIS HISTORII:\n"
-            f"{ustalenie.source_entry_id}"
-        )
+twierdzenie_1 = Claim(
+    content="Jutro będzie padał deszcz.",
+    knowledge_type=KnowledgeType.UNKNOWN,
+)
 
-        print(
-            f"\nWYKRYTY PROBLEM:\n"
-            f"{ustalenie.problem}"
-        )
+feniks.register_claim(
+    twierdzenie_1
+)
 
-        print("\nPODSTAWA ANALIZY:")
+ocena_1 = feniks.assess_claim(
+    twierdzenie_1
+)
 
-        if ustalenie.evidence:
+pokaz_wynik(
+    1,
+    ocena_1,
+)
 
-            for nr, dowod in enumerate(
-                ustalenie.evidence,
-                start=1,
-            ):
-                print(
-                    f"{nr}. {dowod}"
-                )
 
-        else:
-            print(
-                "Brak zapisanej podstawy analizy."
-            )
+# =========================================================
+# TEST 2
+# DWA MOCNE DOWODY WSPIERAJĄCE
+# =========================================================
 
-        print("\nCZEGO JESZCZE NIE WIEM:")
+twierdzenie_2 = Claim(
+    content=(
+        "Testowy moduł Silnika Prawdy "
+        "został uruchomiony."
+    ),
+    knowledge_type=KnowledgeType.UNKNOWN,
+)
 
-        if ustalenie.unknowns:
+feniks.register_claim(
+    twierdzenie_2
+)
 
-            for nr, niewiadoma in enumerate(
-                ustalenie.unknowns,
-                start=1,
-            ):
-                print(
-                    f"{nr}. {niewiadoma}"
-                )
+feniks.add_evidence(
+    twierdzenie_2,
+    Evidence(
+        description=(
+            "Program uruchomił kod modułu "
+            "Silnika Prawdy."
+        ),
+        source="FENIKS",
+        source_type=SourceType.SYSTEM,
+        reliability=0.98,
+        supports_claim=True,
+    ),
+)
 
-        else:
-            print(
-                "Nie wykryto dodatkowych "
-                "braków informacji."
-            )
+feniks.add_evidence(
+    twierdzenie_2,
+    Evidence(
+        description=(
+            "Test otrzymał wynik analizy "
+            "z Silnika Prawdy."
+        ),
+        source="test systemowy",
+        source_type=SourceType.SYSTEM,
+        reliability=0.95,
+        supports_claim=True,
+    ),
+)
 
-        print("\nPROPONOWANY NASTĘPNY KROK:")
+ocena_2 = feniks.assess_claim(
+    twierdzenie_2
+)
 
-        if ustalenie.proposed_next_step:
-            print(
-                ustalenie.proposed_next_step
-            )
-        else:
-            print(
-                "Nie przygotowano propozycji."
-            )
+pokaz_wynik(
+    2,
+    ocena_2,
+)
 
+
+# =========================================================
+# TEST 3
+# MOCNY DOWÓD ZA I MOCNY DOWÓD PRZECIW
+# =========================================================
+
+twierdzenie_3 = Claim(
+    content=(
+        "Eksperymentalny czujnik "
+        "wykrył obiekt."
+    ),
+    knowledge_type=KnowledgeType.UNKNOWN,
+)
+
+feniks.register_claim(
+    twierdzenie_3
+)
+
+feniks.add_evidence(
+    twierdzenie_3,
+    Evidence(
+        description=(
+            "Czujnik A zgłosił obecność obiektu."
+        ),
+        source="czujnik A",
+        source_type=SourceType.SENSOR,
+        reliability=0.90,
+        supports_claim=True,
+    ),
+)
+
+feniks.add_evidence(
+    twierdzenie_3,
+    Evidence(
+        description=(
+            "Niezależny czujnik B "
+            "nie potwierdził obecności obiektu."
+        ),
+        source="czujnik B",
+        source_type=SourceType.SENSOR,
+        reliability=0.88,
+        supports_claim=False,
+    ),
+)
+
+ocena_3 = feniks.assess_claim(
+    twierdzenie_3
+)
+
+pokaz_wynik(
+    3,
+    ocena_3,
+)
+
+
+# =========================================================
+# TEST 4
+# SŁABY DOWÓD ZA I BARDZO MOCNY DOWÓD PRZECIW
+# =========================================================
+
+twierdzenie_4 = Claim(
+    content=(
+        "Eksperymentalny system działa poprawnie."
+    ),
+    knowledge_type=KnowledgeType.UNKNOWN,
+)
+
+feniks.register_claim(
+    twierdzenie_4
+)
+
+feniks.add_evidence(
+    twierdzenie_4,
+    Evidence(
+        description=(
+            "Jeden wstępny test zakończył się "
+            "wynikiem pozytywnym."
+        ),
+        source="test wstępny",
+        source_type=SourceType.SYSTEM,
+        reliability=0.35,
+        supports_claim=True,
+    ),
+)
+
+feniks.add_evidence(
+    twierdzenie_4,
+    Evidence(
+        description=(
+            "Test kontrolny wykazał błąd systemu."
+        ),
+        source="test kontrolny",
+        source_type=SourceType.SYSTEM,
+        reliability=0.98,
+        supports_claim=False,
+    ),
+)
+
+ocena_4 = feniks.assess_claim(
+    twierdzenie_4
+)
+
+pokaz_wynik(
+    4,
+    ocena_4,
+)
+
+
+# =========================================================
+# STAN SILNIKA
+# =========================================================
 
 print("\n" + "=" * 70)
-print("STAN MODUŁU SAMOANALIZY")
+print("STAN SILNIKA PRAWDY")
 print("=" * 70)
 
-statystyki = feniks.self_analysis.stats()
+statystyki = feniks.truth_engine.stats()
 
 print(
-    "MODUŁ SAMOANALIZY GOTOWY: "
-    + (
-        "TAK"
-        if statystyki["modul_gotowy"]
-        else "NIE"
-    )
+    f"ZAREJESTROWANE TWIERDZENIA: "
+    f"{statystyki['registered_claims']}"
 )
 
 print(
-    f"RAPORTY W BIEŻĄCEJ SESJI: "
-    f"{statystyki['liczba_raportow']}"
+    f"WYKONANE ANALIZY: "
+    f"{statystyki['assessments']}"
 )
 
 print(
-    f"USTALENIA W BIEŻĄCEJ SESJI: "
-    f"{statystyki['liczba_ustalen']}"
+    f"WYKRYTE SPRZECZNOŚCI: "
+    f"{statystyki['contradictions']}"
+)
+
+print(
+    f"NIEROZSTRZYGNIĘTE: "
+    f"{statystyki['unresolved']}"
 )
 
 print("\n" + "=" * 70)
-print("SAMOANALIZA ZAKOŃCZONA")
+print("TEST SILNIKA PRAWDY ZAKOŃCZONY")
 print("=" * 70)
