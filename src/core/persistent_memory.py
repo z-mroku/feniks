@@ -70,15 +70,16 @@ class PersistentMemory:
         Tworzy wymagane tabele, jeżeli jeszcze
         nie istnieją.
 
-        CREATE TABLE IF NOT EXISTS pozwala bezpiecznie
-        rozszerzać istniejącą bazę FENIKSA.
+        CREATE TABLE IF NOT EXISTS pozwala
+        bezpiecznie korzystać z istniejącej
+        bazy FENIKSA.
         """
 
         with self._connect() as connection:
 
-            # -------------------------------------------------
+            # =================================================
             # ZWYKŁA PAMIĘĆ TRWAŁA
-            # -------------------------------------------------
+            # =================================================
 
             connection.execute(
                 """
@@ -94,9 +95,9 @@ class PersistentMemory:
                 """
             )
 
-            # -------------------------------------------------
+            # =================================================
             # HISTORIA ROZWOJU FENIKSA
-            # -------------------------------------------------
+            # =================================================
 
             connection.execute(
                 """
@@ -217,7 +218,9 @@ class PersistentMemory:
         if row is None:
             return None
 
-        return self._memory_row_to_dict(row)
+        return self._memory_row_to_dict(
+            row
+        )
 
     def recent(
         self,
@@ -323,7 +326,9 @@ class PersistentMemory:
                 """
             ).fetchone()
 
-        return int(row["total"])
+        return int(
+            row["total"]
+        )
 
     def _memory_row_to_dict(
         self,
@@ -365,33 +370,40 @@ class PersistentMemory:
         updated_at: Optional[str] = None,
     ) -> int:
         """
-        Zapisuje doświadczenie rozwojowe FENIKSA
-        w trwałej historii rozwoju.
+        Zapisuje nowe doświadczenie rozwojowe FENIKSA
+        w trwałej historii.
+
+        Ta metoda tworzy NOWY rekord.
         """
 
-        if not title.strip():
-            raise ValueError(
-                "Tytuł doświadczenia rozwojowego "
-                "nie może być pusty."
-            )
+        self._validate_development_text(
+            title=title,
+            description=description,
+        )
 
-        if not description.strip():
-            raise ValueError(
-                "Opis doświadczenia rozwojowego "
-                "nie może być pusty."
-            )
+        evidence = (
+            evidence
+            if evidence is not None
+            else []
+        )
 
-        if evidence is None:
-            evidence = []
+        changes = (
+            changes
+            if changes is not None
+            else []
+        )
 
-        if changes is None:
-            changes = []
+        test_results = (
+            test_results
+            if test_results is not None
+            else []
+        )
 
-        if test_results is None:
-            test_results = []
-
-        if unresolved is None:
-            unresolved = []
+        unresolved = (
+            unresolved
+            if unresolved is not None
+            else []
+        )
 
         now = datetime.now().isoformat(
             timespec="seconds"
@@ -428,21 +440,17 @@ class PersistentMemory:
                     category,
                     status,
                     discovered_by,
-                    json.dumps(
-                        evidence,
-                        ensure_ascii=False,
+                    self._list_to_json(
+                        evidence
                     ),
-                    json.dumps(
-                        changes,
-                        ensure_ascii=False,
+                    self._list_to_json(
+                        changes
                     ),
-                    json.dumps(
-                        test_results,
-                        ensure_ascii=False,
+                    self._list_to_json(
+                        test_results
                     ),
-                    json.dumps(
-                        unresolved,
-                        ensure_ascii=False,
+                    self._list_to_json(
+                        unresolved
                     ),
                     created_at,
                     updated_at,
@@ -451,7 +459,145 @@ class PersistentMemory:
 
             connection.commit()
 
-            return int(cursor.lastrowid)
+            return int(
+                cursor.lastrowid
+            )
+
+    def update_development_entry(
+        self,
+        entry_id: int,
+        title: str,
+        description: str,
+        category: str,
+        status: str,
+        discovered_by: str,
+        evidence: Optional[List[str]] = None,
+        changes: Optional[List[str]] = None,
+        test_results: Optional[List[str]] = None,
+        unresolved: Optional[List[str]] = None,
+    ) -> bool:
+        """
+        Aktualizuje ISTNIEJĄCY wpis historii rozwoju.
+
+        Nie tworzy nowego rekordu.
+
+        Zachowuje:
+        - ten sam numer ID,
+        - pierwotny czas utworzenia.
+
+        Zmienia:
+        - treść wpisu,
+        - status,
+        - dowody,
+        - zmiany,
+        - wyniki testów,
+        - nierozwiązane kwestie,
+        - czas ostatniej aktualizacji.
+
+        Zwraca True, jeżeli aktualizacja się powiodła.
+
+        Jeżeli wpis o podanym ID nie istnieje,
+        zgłasza ValueError.
+        """
+
+        if entry_id <= 0:
+            raise ValueError(
+                "Numer wpisu historii rozwoju "
+                "musi być większy od zera."
+            )
+
+        self._validate_development_text(
+            title=title,
+            description=description,
+        )
+
+        evidence = (
+            evidence
+            if evidence is not None
+            else []
+        )
+
+        changes = (
+            changes
+            if changes is not None
+            else []
+        )
+
+        test_results = (
+            test_results
+            if test_results is not None
+            else []
+        )
+
+        unresolved = (
+            unresolved
+            if unresolved is not None
+            else []
+        )
+
+        updated_at = datetime.now().isoformat(
+            timespec="seconds"
+        )
+
+        with self._connect() as connection:
+
+            existing = connection.execute(
+                """
+                SELECT id
+                FROM development_history
+                WHERE id = ?
+                """,
+                (entry_id,),
+            ).fetchone()
+
+            if existing is None:
+                raise ValueError(
+                    f"Wpis historii rozwoju nr "
+                    f"{entry_id} nie istnieje."
+                )
+
+            cursor = connection.execute(
+                """
+                UPDATE development_history
+                SET
+                    title = ?,
+                    description = ?,
+                    category = ?,
+                    status = ?,
+                    discovered_by = ?,
+                    evidence = ?,
+                    changes = ?,
+                    test_results = ?,
+                    unresolved = ?,
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    title,
+                    description,
+                    category,
+                    status,
+                    discovered_by,
+                    self._list_to_json(
+                        evidence
+                    ),
+                    self._list_to_json(
+                        changes
+                    ),
+                    self._list_to_json(
+                        test_results
+                    ),
+                    self._list_to_json(
+                        unresolved
+                    ),
+                    updated_at,
+                    entry_id,
+                ),
+            )
+
+            connection.commit()
+
+            return cursor.rowcount == 1
 
     def development_history(
         self,
@@ -515,7 +661,9 @@ class PersistentMemory:
         if row is None:
             return None
 
-        return self._development_row_to_dict(row)
+        return self._development_row_to_dict(
+            row
+        )
 
     def find_development_by_category(
         self,
@@ -558,6 +706,21 @@ class PersistentMemory:
             if entry["nierozwiazane"]
         ]
 
+    def resolved_development(
+        self,
+    ) -> List[Dict[str, Any]]:
+        """
+        Zwraca wpisy oznaczone statusem ROZWIĄZANO.
+        """
+
+        entries = self.development_history()
+
+        return [
+            entry
+            for entry in entries
+            if entry["status"] == "ROZWIĄZANO"
+        ]
+
     def development_count(self) -> int:
         """
         Zwraca liczbę trwałych wpisów rozwojowych.
@@ -572,7 +735,9 @@ class PersistentMemory:
                 """
             ).fetchone()
 
-        return int(row["total"])
+        return int(
+            row["total"]
+        )
 
     def _development_row_to_dict(
         self,
@@ -590,21 +755,92 @@ class PersistentMemory:
             "kategoria": row["category"],
             "status": row["status"],
             "wykryto_przez": row["discovered_by"],
-            "dowody": json.loads(
+
+            "dowody": self._json_to_list(
                 row["evidence"]
             ),
-            "zmiany": json.loads(
+
+            "zmiany": self._json_to_list(
                 row["changes"]
             ),
-            "wyniki_testow": json.loads(
+
+            "wyniki_testow": self._json_to_list(
                 row["test_results"]
             ),
-            "nierozwiazane": json.loads(
+
+            "nierozwiazane": self._json_to_list(
                 row["unresolved"]
             ),
+
             "utworzono": row["created_at"],
             "zaktualizowano": row["updated_at"],
         }
+
+    # =========================================================
+    # NARZĘDZIA HISTORII ROZWOJU
+    # =========================================================
+
+    def _validate_development_text(
+        self,
+        title: str,
+        description: str,
+    ) -> None:
+        """
+        Sprawdza podstawowe wymagania wpisu rozwojowego.
+        """
+
+        if not title.strip():
+            raise ValueError(
+                "Tytuł doświadczenia rozwojowego "
+                "nie może być pusty."
+            )
+
+        if not description.strip():
+            raise ValueError(
+                "Opis doświadczenia rozwojowego "
+                "nie może być pusty."
+            )
+
+    def _list_to_json(
+        self,
+        values: List[str],
+    ) -> str:
+        """
+        Zamienia listę tekstów na JSON
+        z zachowaniem polskich znaków.
+        """
+
+        return json.dumps(
+            values,
+            ensure_ascii=False,
+        )
+
+    def _json_to_list(
+        self,
+        value: str,
+    ) -> List[str]:
+        """
+        Bezpiecznie odczytuje listę zapisaną jako JSON.
+        """
+
+        try:
+            result = json.loads(
+                value
+            )
+
+        except (
+            json.JSONDecodeError,
+            TypeError,
+        ):
+            return []
+
+        if not isinstance(
+            result,
+            list,
+        ):
+            return []
+
+        return result
 
     # =========================================================
     # STAN PAMIĘCI
@@ -612,18 +848,29 @@ class PersistentMemory:
 
     def status(self) -> Dict[str, Any]:
         """
-        Podaje podstawowy stan trwałej pamięci FENIKSA.
+        Zwraca podstawowy stan trwałej pamięci FENIKSA.
         """
 
         return {
             "baza_danych": str(
                 self.database_path
             ),
-            "liczba_wspomnien": self.count(),
+
+            "liczba_wspomnien":
+                self.count(),
+
             "liczba_wpisow_rozwoju":
                 self.development_count(),
-            "nierozwiazane_wpisy_rozwoju": len(
-                self.unresolved_development()
-            ),
+
+            "nierozwiazane_wpisy_rozwoju":
+                len(
+                    self.unresolved_development()
+                ),
+
+            "rozwiazane_wpisy_rozwoju":
+                len(
+                    self.resolved_development()
+                ),
+
             "gotowa": True,
         }
