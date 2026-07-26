@@ -24,8 +24,7 @@ class AnalysisStatus(Enum):
 
     OBSERVED = "ZAOBSERWOWANO"
     REQUIRES_ANALYSIS = "WYMAGA ANALIZY"
-    PROPOSAL_READY = "PRZYGOTOWANO PROPOZYCJĘ"
-    NO_ACTION = "NIE WYMAGA DZIAŁANIA"
+    PROPOSAL_READY = "PRZYGOTOWANO PROPOZYCJĘ DZIAŁANIA"
 
 
 @dataclass
@@ -112,7 +111,9 @@ class SelfAnalysis:
     3. wskazać podstawę ich wykrycia,
     4. określić obszar systemu,
     5. wskazać braki wiedzy,
-    6. zaproponować następny krok.
+    6. porównać problem z rozwiązaną historią,
+    7. zaproponować następny krok bez powtarzania
+       rozwiązania, które zostało już wdrożone.
     """
 
     def __init__(
@@ -124,6 +125,10 @@ class SelfAnalysis:
         self.reports: List[
             SelfAnalysisReport
         ] = []
+
+    # =====================================================
+    # GŁÓWNA SAMOANALIZA
+    # =====================================================
 
     def analyze_development_history(
         self,
@@ -138,13 +143,20 @@ class SelfAnalysis:
             .unresolved_development()
         )
 
+        resolved_entries = (
+            self.persistent_memory
+            .resolved_development()
+        )
+
         findings: List[
             SelfAnalysisFinding
         ] = []
 
         for entry in unresolved_entries:
+
             finding = self._analyze_development_entry(
-                entry
+                entry=entry,
+                resolved_entries=resolved_entries,
             )
 
             findings.append(
@@ -161,9 +173,14 @@ class SelfAnalysis:
 
         return report
 
+    # =====================================================
+    # ANALIZA POJEDYNCZEGO WPISU
+    # =====================================================
+
     def _analyze_development_entry(
         self,
         entry: Dict[str, Any],
+        resolved_entries: List[Dict[str, Any]],
     ) -> SelfAnalysisFinding:
         """
         Zamienia nierozwiązany wpis historii
@@ -207,8 +224,23 @@ class SelfAnalysis:
             )
         )
 
+        related_history = (
+            self._find_related_resolved_history(
+                entry=entry,
+                resolved_entries=resolved_entries,
+            )
+        )
+
+        if related_history:
+            analysis_evidence.extend(
+                self._build_history_evidence(
+                    related_history
+                )
+            )
+
         unknowns = self._identify_unknowns(
-            entry=entry
+            entry=entry,
+            related_history=related_history,
         )
 
         priority = self._estimate_priority(
@@ -217,7 +249,8 @@ class SelfAnalysis:
 
         proposed_next_step = (
             self._propose_next_step(
-                entry=entry
+                entry=entry,
+                related_history=related_history,
             )
         )
 
@@ -235,6 +268,10 @@ class SelfAnalysis:
             proposed_next_step=proposed_next_step,
             source_entry_id=entry.get("id"),
         )
+
+    # =====================================================
+    # OPIS PROBLEMU
+    # =====================================================
 
     def _build_problem_description(
         self,
@@ -254,6 +291,10 @@ class SelfAnalysis:
         return " ".join(
             unresolved
         )
+
+    # =====================================================
+    # DOWODY
+    # =====================================================
 
     def _build_analysis_evidence(
         self,
@@ -290,9 +331,105 @@ class SelfAnalysis:
 
         return result
 
+    def _build_history_evidence(
+        self,
+        related_history: List[Dict[str, Any]],
+    ) -> List[str]:
+        """
+        Dodaje informacje o powiązanych,
+        wcześniej rozwiązanych doświadczeniach.
+        """
+
+        result: List[str] = []
+
+        for entry in related_history:
+
+            result.append(
+                "Powiązane rozwiązane doświadczenie "
+                f"nr {entry['id']}: "
+                f"{entry['tytul']}."
+            )
+
+            for change in entry.get(
+                "zmiany",
+                [],
+            ):
+                result.append(
+                    "W rozwiązanym doświadczeniu "
+                    f"wdrożono: {change}"
+                )
+
+            for test in entry.get(
+                "wyniki_testow",
+                [],
+            ):
+                result.append(
+                    "W rozwiązanym doświadczeniu "
+                    f"uzyskano wynik testu: {test}"
+                )
+
+        return result
+
+    # =====================================================
+    # PORÓWNANIE Z HISTORIĄ
+    # =====================================================
+
+    def _find_related_resolved_history(
+        self,
+        entry: Dict[str, Any],
+        resolved_entries: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """
+        Szuka rozwiązanych doświadczeń należących
+        do tego samego obszaru systemu.
+
+        To pierwszy etap mechanizmu kontekstowego.
+
+        Sam fakt zgodności kategorii nie oznacza,
+        że stare rozwiązanie pasuje do nowego problemu.
+        Historia ma służyć jako kontekst i zabezpieczenie
+        przed bezmyślnym powtarzaniem wcześniejszych zmian.
+        """
+
+        current_category = str(
+            entry.get(
+                "kategoria",
+                ""
+            )
+        ).casefold()
+
+        related: List[
+            Dict[str, Any]
+        ] = []
+
+        for resolved in resolved_entries:
+
+            resolved_category = str(
+                resolved.get(
+                    "kategoria",
+                    ""
+                )
+            ).casefold()
+
+            if (
+                current_category
+                and current_category
+                == resolved_category
+            ):
+                related.append(
+                    resolved
+                )
+
+        return related
+
+    # =====================================================
+    # BRAKI WIEDZY
+    # =====================================================
+
     def _identify_unknowns(
         self,
         entry: Dict[str, Any],
+        related_history: List[Dict[str, Any]],
     ) -> List[str]:
         """
         Wskazuje informacje, których obecna
@@ -301,25 +438,44 @@ class SelfAnalysis:
 
         unknowns: List[str] = []
 
-        if entry.get("nierozwiazane"):
+        if entry.get(
+            "nierozwiazane"
+        ):
             unknowns.append(
                 "Nie wiadomo jeszcze, jakie rozwiązanie "
                 "najlepiej usunie zapisany problem."
             )
 
-        if not entry.get("wyniki_testow"):
+        if not entry.get(
+            "wyniki_testow"
+        ):
             unknowns.append(
                 "Brakuje wyników testów pozwalających "
                 "ocenić zachowanie systemu."
             )
 
-        if not entry.get("dowody"):
+        if not entry.get(
+            "dowody"
+        ):
             unknowns.append(
                 "Brakuje zapisanych dowodów "
                 "uzasadniających problem."
             )
 
+        if related_history:
+            unknowns.append(
+                "Istnieją wcześniejsze rozwiązane "
+                "doświadczenia z tego samego obszaru. "
+                "Należy ustalić, które ich elementy są "
+                "przydatne, a których nie wolno "
+                "bezpośrednio powtarzać."
+            )
+
         return unknowns
+
+    # =====================================================
+    # PRIORYTET
+    # =====================================================
 
     def _estimate_priority(
         self,
@@ -339,40 +495,171 @@ class SelfAnalysis:
         if "prawdy" in category:
             return AnalysisPriority.HIGH
 
-        if entry.get("nierozwiazane"):
+        if entry.get(
+            "nierozwiazane"
+        ):
             return AnalysisPriority.MEDIUM
 
         return AnalysisPriority.LOW
 
-    def _propose_next_step(
+    # =====================================================
+    # ANALIZA TREŚCI PROBLEMU
+    # =====================================================
+
+    def _problem_text(
         self,
         entry: Dict[str, Any],
     ) -> str:
         """
-        Przygotowuje propozycję następnego kroku.
+        Łączy najważniejsze informacje o problemie
+        w jeden tekst roboczy.
         """
 
-        category = str(
-            entry.get(
-                "kategoria",
-                ""
+        parts: List[str] = []
+
+        parts.append(
+            str(
+                entry.get(
+                    "tytul",
+                    ""
+                )
             )
+        )
+
+        parts.append(
+            str(
+                entry.get(
+                    "opis",
+                    ""
+                )
+            )
+        )
+
+        parts.extend(
+            entry.get(
+                "nierozwiazane",
+                [],
+            )
+        )
+
+        parts.extend(
+            entry.get(
+                "dowody",
+                [],
+            )
+        )
+
+        return " ".join(
+            parts
         ).casefold()
 
-        if "prawdy" in category:
+    # =====================================================
+    # NASTĘPNY KROK
+    # =====================================================
+
+    def _propose_next_step(
+        self,
+        entry: Dict[str, Any],
+        related_history: List[Dict[str, Any]],
+    ) -> str:
+        """
+        Przygotowuje następny krok na podstawie
+        konkretnego problemu i historii.
+
+        Nie zakłada, że wszystkie problemy należące
+        do jednej kategorii wymagają tego samego
+        rozwiązania.
+        """
+
+        problem_text = self._problem_text(
+            entry
+        )
+
+        # -------------------------------------------------
+        # Problem dotyczący jakości lub siły dowodów.
+        # -------------------------------------------------
+
+        evidence_terms = (
+            "słaby dowód",
+            "bardzo słaby",
+            "wiarygodność",
+            "minimalną istotność",
+            "relację sił",
+            "dowód przeciwny",
+        )
+
+        if any(
+            term in problem_text
+            for term in evidence_terms
+        ):
             return (
-                "Przeanalizować sposób obliczania "
-                "pewności przy sprzecznych dowodach "
-                "i rozdzielić co najmniej trzy wartości: "
-                "siłę poparcia, siłę sprzeciwu oraz "
-                "pewność klasyfikacji."
+                "Zaprojektować serię kontrolowanych "
+                "testów z dowodami o różnych poziomach "
+                "wiarygodności po obu stronach twierdzenia. "
+                "Porównać siłę poparcia, siłę sprzeciwu "
+                "oraz wynik klasyfikacji. Na podstawie "
+                "wyników ustalić, czy sama obecność "
+                "dowodu przeciwnego powinna wystarczać "
+                "do stwierdzenia SPRZECZNOŚCI, czy potrzebne "
+                "jest dodatkowe kryterium istotności."
             )
 
-        return (
-            "Przeanalizować dostępne dowody, "
-            "zaprojektować możliwe rozwiązanie "
-            "i poddać je testom przed wdrożeniem."
+        # -------------------------------------------------
+        # Problem dotyczący samej Samoanalizy.
+        # -------------------------------------------------
+
+        self_analysis_terms = (
+            "samoanaliz",
+            "następnego kroku",
+            "proponowania",
+            "konkretną treść problemu",
         )
+
+        if any(
+            term in problem_text
+            for term in self_analysis_terms
+        ):
+            return (
+                "Przetestować mechanizm Samoanalizy na "
+                "kilku różnych nierozwiązanych problemach "
+                "należących do tej samej kategorii. "
+                "Sprawdzić, czy dla każdego problemu "
+                "powstaje inny następny krok wynikający "
+                "z jego treści, dowodów i historii, "
+                "zamiast jednej odpowiedzi przypisanej "
+                "do całej kategorii."
+            )
+
+        # -------------------------------------------------
+        # Jeśli istnieje powiązana rozwiązana historia,
+        # nie powtarzamy automatycznie starego rozwiązania.
+        # -------------------------------------------------
+
+        if related_history:
+            return (
+                "Porównać bieżący problem z wcześniejszymi "
+                "rozwiązanymi doświadczeniami z tego samego "
+                "obszaru. Oddzielić elementy już wdrożone "
+                "od nowych niewiadomych, następnie "
+                "zaprojektować test dotyczący wyłącznie "
+                "nierozwiązanej części obecnego problemu."
+            )
+
+        # -------------------------------------------------
+        # Bezpieczna reguła ogólna.
+        # -------------------------------------------------
+
+        return (
+            "Przeanalizować konkretną treść problemu "
+            "i dostępne dowody, określić możliwe "
+            "konkurencyjne wyjaśnienia lub rozwiązania, "
+            "a następnie zaprojektować test pozwalający "
+            "je porównać przed wprowadzeniem zmiany."
+        )
+
+    # =====================================================
+    # OSTATNI RAPORT
+    # =====================================================
 
     def last_report(
         self,
@@ -386,7 +673,13 @@ class SelfAnalysis:
 
         return self.reports[-1]
 
-    def stats(self) -> Dict[str, Any]:
+    # =====================================================
+    # STATYSTYKI
+    # =====================================================
+
+    def stats(
+        self,
+    ) -> Dict[str, Any]:
         """
         Podstawowy stan modułu samoanalizy.
         """
@@ -397,7 +690,9 @@ class SelfAnalysis:
         )
 
         return {
-            "liczba_raportow": len(self.reports),
+            "liczba_raportow": len(
+                self.reports
+            ),
             "liczba_ustalen": findings,
             "modul_gotowy": True,
         }
