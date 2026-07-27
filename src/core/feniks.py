@@ -29,6 +29,8 @@ from core.gemini_knowledge_relevance_provider import (
 from core.identity import Identity
 from core.memory import Memory
 from core.persistent_memory import PersistentMemory
+from core.cognitive_orchestrator import CognitiveOrchestrator
+from core.cognitive_executor import CognitiveExecutor
 from core.reasoning_engine import ReasoningProblem, ReasoningEngine
 from core.reasoning_provider import (
     GeminiReasoningProvider,
@@ -155,6 +157,18 @@ class Feniks:
 
         # Strukturalny silnik rozumowania nie zgaduje semantyki.
         self.reasoning_engine = ReasoningEngine()
+
+        # Orkiestrator wybiera dalsza droge poznawcza.
+        # Nie rozstrzyga prawdy i nie zapisuje wiedzy.
+        self.cognitive_orchestrator = CognitiveOrchestrator(
+            reasoning_engine=self.reasoning_engine,
+        )
+
+        # Wykonuje bezpieczny następny krok wybrany przez orkiestrator.
+        self.cognitive_executor = CognitiveExecutor(
+            orchestrator=self.cognitive_orchestrator,
+            reason_callback=self.reason_about_problem,
+        )
 
         # Zewnętrzna warstwa semantycznego rozumowania.
         # Wynik jest propozycją analizy, nie źródłem prawdy.
@@ -864,6 +878,11 @@ class Feniks:
             "retriever_wiedzy_zaladowany": True,
             "provider_trafnosci_wiedzy_zaladowany": True,
             "silnik_trafnosci_wiedzy_zaladowany": True,
+            "orkiestrator_poznawczy_zaladowany": True,
+            "decyzje_orkiestratora":
+                self.cognitive_orchestrator.stats()["liczba_decyzji"],
+            "wykonawca_poznawczy_zaladowany": True,
+            "wykonania_poznawcze": self.cognitive_executor.stats()["liczba_wykonan"],
         }
 
 
