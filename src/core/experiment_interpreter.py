@@ -3,6 +3,7 @@ from typing import Optional
 
 from google import genai
 from google.genai import types
+from google.genai.errors import ServerError
 from pydantic import BaseModel, Field
 
 from core.experiment_runner import ExperimentResult
@@ -15,15 +16,15 @@ class HypothesisStatus(Enum):
 
     CONFIRMED = "POTWIERDZONA"
     REJECTED = "OBALONA"
-    INCONCLUSIVE = "NIEROZSTRZYGNIÄTA"
+    INCONCLUSIVE = "NIEROZSTRZYGNIĘTA"
 
 
 class ExperimentInterpretation(BaseModel):
     """
     Interpretacja rzeczywistego eksperymentu.
 
-    Model jÄ™zykowy interpretuje dane,
-    ale nie moĹĽe ich zmieniaÄ‡.
+    Model jĂ„â„˘zykowy interpretuje dane,
+    ale nie moÄąÄ˝e ich zmieniaĂ„â€ˇ.
     """
 
     hypothesis_status: HypothesisStatus
@@ -50,78 +51,86 @@ class ExperimentInterpretation(BaseModel):
 
 class GeminiExperimentInterpreter:
     """
-    Interpretuje wyniki eksperymentĂłw FENIKSA
+    Interpretuje wyniki eksperymentÄ‚Ĺ‚w FENIKSA
     przy pomocy Gemini.
 
-    WAĹ»NE:
+    WAÄąÂ»NE:
 
     Gemini nie wykonuje eksperymentu.
     Gemini nie tworzy obserwacji.
-    Gemini nie moĹĽe zmieniaÄ‡ wynikĂłw.
+    Gemini nie moÄąÄ˝e zmieniaĂ„â€ˇ wynikÄ‚Ĺ‚w.
 
-    Otrzymuje wyĹ‚Ä…cznie dane zmierzone
-    przez ExperimentRunner i prĂłbuje
-    wyciÄ…gnÄ…Ä‡ z nich ostroĹĽne wnioski.
+    Otrzymuje wyÄąâ€šĂ„â€¦cznie dane zmierzone
+    przez ExperimentRunner i prÄ‚Ĺ‚buje
+    wyciĂ„â€¦gnĂ„â€¦Ă„â€ˇ z nich ostroÄąÄ˝ne wnioski.
     """
 
     MODEL = "gemini-3.5-flash"
+    FALLBACK_MODEL = "gemini-3.6-flash"
     supports_prior_knowledge_context = True
 
     SYSTEM_INSTRUCTION = """
-JesteĹ› zewnÄ™trznÄ… warstwÄ… interpretacji eksperymentĂłw
+JesteÄąâ€ş zewnĂ„â„˘trznĂ„â€¦ warstwĂ„â€¦ interpretacji eksperymentÄ‚Ĺ‚w
 systemu FENIKS.
 
 Otrzymujesz:
 
-1. hipotezÄ™ postawionÄ… PRZED eksperymentem,
+1. hipotezĂ„â„˘ postawionĂ„â€¦ PRZED eksperymentem,
 2. rzeczywiste obserwacje wygenerowane przez program,
 3. dodatkowe ustalenia obliczone przez program.
 
 Twoim zadaniem jest interpretacja tych danych.
 
-Hierarchia wiarygodnoĹ›ci:
+Hierarchia wiarygodnoÄąâ€şci:
 
 RZECZYWISTE OBSERWACJE PROGRAMU
-majÄ… pierwszeĹ„stwo przed
-HIPOTEZÄ„ MODELU.
+majĂ„â€¦ pierwszeÄąâ€žstwo przed
+HIPOTEZĂ„â€ž MODELU.
 
 Nie wolno ci:
 
-- zmieniaÄ‡ wartoĹ›ci obserwacji,
-- wymyĹ›laÄ‡ brakujÄ…cych wynikĂłw,
-- twierdziÄ‡, ĹĽe wykonano test, ktĂłrego nie wykonano,
-- dopasowywaÄ‡ danych do wczeĹ›niejszej hipotezy,
-- przedstawiaÄ‡ hipotezy jako faktu,
-- proponowaÄ‡ naprawy przed ustaleniem natury problemu,
-- wymyĹ›laÄ‡ arbitralnych progĂłw liczbowych.
+- zmieniaĂ„â€ˇ wartoÄąâ€şci obserwacji,
+- wymyÄąâ€şlaĂ„â€ˇ brakujĂ„â€¦cych wynikÄ‚Ĺ‚w,
+- twierdziĂ„â€ˇ, ÄąÄ˝e wykonano test, ktÄ‚Ĺ‚rego nie wykonano,
+- dopasowywaĂ„â€ˇ danych do wczeÄąâ€şniejszej hipotezy,
+- przedstawiaĂ„â€ˇ hipotezy jako faktu,
+- proponowaĂ„â€ˇ naprawy przed ustaleniem natury problemu,
+- wymyÄąâ€şlaĂ„â€ˇ arbitralnych progÄ‚Ĺ‚w liczbowych.
 
-JeĹĽeli dane przeczÄ… hipotezie, masz to jawnie powiedzieÄ‡.
+JeÄąÄ˝eli dane przeczĂ„â€¦ hipotezie, masz to jawnie powiedzieĂ„â€ˇ.
 
-JeĹĽeli eksperyment nie wystarcza do rozstrzygniÄ™cia hipotezy,
-oznacz jÄ… jako NIEROZSTRZYGNIÄTÄ„.
+JeÄąÄ˝eli eksperyment nie wystarcza do rozstrzygniĂ„â„˘cia hipotezy,
+oznacz jĂ„â€¦ jako NIEROZSTRZYGNIĂ„ÂTĂ„â€ž.
 
-JeĹĽeli eksperyment ujawnia inne zjawisko niĹĽ to,
-ktĂłrego oczekiwano, oddziel:
+JeÄąÄ˝eli eksperyment ujawnia inne zjawisko niÄąÄ˝ to,
+ktÄ‚Ĺ‚rego oczekiwano, oddziel:
 
-- wynik dotyczÄ…cy pierwotnej hipotezy,
+- wynik dotyczĂ„â€¦cy pierwotnej hipotezy,
 - nowe nieoczekiwane ustalenie.
 
-NastÄ™pny eksperyment powinien sĹ‚uĹĽyÄ‡ poznaniu przyczyny
+NastĂ„â„˘pny eksperyment powinien sÄąâ€šuÄąÄ˝yĂ„â€ˇ poznaniu przyczyny
 zaobserwowanego zachowania.
 
 Nie projektuj jeszcze naprawy systemu.
 
 Najpierw diagnoza.
 Potem przyczyna.
-Dopiero pĂłĹşniej rozwiÄ…zanie.
+Dopiero pÄ‚Ĺ‚ÄąĹźniej rozwiĂ„â€¦zanie.
 """
 
     def __init__(
         self,
         model: Optional[str] = None,
+        fallback_model: Optional[str] = None,
     ):
         self.model = model or self.MODEL
+        self.fallback_model = fallback_model or self.FALLBACK_MODEL
         self.client = genai.Client()
+
+        # Jawny stan ostatniego wywołania — do audytu i samoobserwacji.
+        self.last_model_used: Optional[str] = None
+        self.last_fallback_used: bool = False
+        self.last_primary_error: Optional[str] = None
 
     def interpret(
         self,
@@ -139,20 +148,55 @@ Dopiero pĂłĹşniej rozwiÄ…zanie.
             prior_knowledge_context=prior_knowledge_context,
         )
 
-        response = self.client.models.generate_content(
-            model=self.model,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=self.SYSTEM_INSTRUCTION,
-                response_mime_type="application/json",
-                response_schema=ExperimentInterpretation,
-                temperature=0.1,
-            ),
+        config = types.GenerateContentConfig(
+            system_instruction=self.SYSTEM_INSTRUCTION,
+            response_mime_type="application/json",
+            response_schema=ExperimentInterpretation,
+            temperature=0.1,
         )
+
+        self.last_model_used = None
+        self.last_fallback_used = False
+        self.last_primary_error = None
+
+        try:
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=config,
+            )
+            self.last_model_used = self.model
+
+        except ServerError as error:
+            status_code = getattr(error, "code", None)
+            if status_code is None:
+                status_code = getattr(error, "status_code", None)
+
+            # Fallback tylko przy chwilowej niedostępności infrastruktury.
+            # Nie wolno wybierać innego modelu dlatego, że odpowiedź
+            # podstawowego modelu jest niewygodna lub niezgodna z oczekiwaniem.
+            if status_code != 503:
+                raise
+
+            if (
+                not self.fallback_model
+                or self.fallback_model == self.model
+            ):
+                raise
+
+            self.last_primary_error = str(error)
+
+            response = self.client.models.generate_content(
+                model=self.fallback_model,
+                contents=prompt,
+                config=config,
+            )
+            self.last_model_used = self.fallback_model
+            self.last_fallback_used = True
 
         if not response.text:
             raise RuntimeError(
-                "Gemini nie zwrĂłciĹ‚o interpretacji eksperymentu."
+                "Gemini nie zwróciło interpretacji eksperymentu."
             )
 
         return ExperimentInterpretation.model_validate_json(
@@ -196,34 +240,34 @@ Dopiero pĂłĹşniej rozwiÄ…zanie.
         first_contradiction = (
             str(result.first_contradiction_at)
             if result.first_contradiction_at is not None
-            else "NIE WYSTÄ„PIĹA"
+            else "NIE WYSTĂ„â€žPIÄąÂA"
         )
 
         first_opposition_stronger = (
             str(result.first_opposition_stronger_at)
             if result.first_opposition_stronger_at is not None
-            else "NIE WYSTÄ„PIĹ"
+            else "NIE WYSTĂ„â€žPIÄąÂ"
         )
 
         prior_knowledge_context = prior_knowledge_context.strip()
 
         if prior_knowledge_context:
             prior_knowledge_section = f"""
-WCZEŚNIEJSZA ZWERYFIKOWANA WIEDZA FENIKSA
-(KONTEKST POMOCNICZY — NIE WYNIK BIEŻĄCEGO EKSPERYMENTU):
+WCZEĹšNIEJSZA ZWERYFIKOWANA WIEDZA FENIKSA
+(KONTEKST POMOCNICZY â€” NIE WYNIK BIEĹ»Ä„CEGO EKSPERYMENTU):
 
 {prior_knowledge_context}
 
-WAŻNE:
-- ta sekcja nie jest nową obserwacją,
-- nie może automatycznie rozstrzygać hipotezy,
-- przy sprzeczności pierwszeństwo mają bieżące obserwacje programu.
+WAĹ»NE:
+- ta sekcja nie jest nowÄ… obserwacjÄ…,
+- nie moĹĽe automatycznie rozstrzygaÄ‡ hipotezy,
+- przy sprzecznoĹ›ci pierwszeĹ„stwo majÄ… bieĹĽÄ…ce obserwacje programu.
 """
         else:
             prior_knowledge_section = """
-WCZEŚNIEJSZA ZWERYFIKOWANA WIEDZA FENIKSA:
+WCZEĹšNIEJSZA ZWERYFIKOWANA WIEDZA FENIKSA:
 
-Brak wcześniejszej wiedzy dobranej do tego problemu.
+Brak wczeĹ›niejszej wiedzy dobranej do tego problemu.
 """
 
         return f"""
@@ -245,11 +289,11 @@ RZECZYWISTE OBSERWACJE PROGRAMU:
 
 USTALENIA OBLICZONE PRZEZ PROGRAM:
 
-Pierwsza wykryta sprzecznoĹ›Ä‡:
+Pierwsza wykryta sprzecznoÄąâ€şĂ„â€ˇ:
 N={first_contradiction}
 
-Pierwszy moment, gdy siĹ‚a sprzeciwu
-przewyĹĽszyĹ‚a siĹ‚Ä™ poparcia:
+Pierwszy moment, gdy siÄąâ€ša sprzeciwu
+przewyÄąÄ˝szyÄąâ€ša siÄąâ€šĂ„â„˘ poparcia:
 N={first_opposition_stronger}
 
 Maksymalne przebadane N:
@@ -258,24 +302,25 @@ Maksymalne przebadane N:
 
 ZADANIE:
 
-1. OceĹ„ status pierwotnej hipotezy.
+1. OceÄąâ€ž status pierwotnej hipotezy.
 
-2. WyjaĹ›nij ocenÄ™ WYĹÄ„CZNIE na podstawie
-   dostarczonych wynikĂłw.
+2. WyjaÄąâ€şnij ocenĂ„â„˘ WYÄąÂĂ„â€žCZNIE na podstawie
+   dostarczonych wynikÄ‚Ĺ‚w.
 
-3. WskaĹĽ nowe ustalenia wynikajÄ…ce
-   bezpoĹ›rednio z obserwacji.
+3. WskaÄąÄ˝ nowe ustalenia wynikajĂ„â€¦ce
+   bezpoÄąâ€şrednio z obserwacji.
 
-4. Oddziel niewiadome od faktĂłw.
+4. Oddziel niewiadome od faktÄ‚Ĺ‚w.
 
-5. JeĹĽeli istniejÄ… rĂłĹĽne moĹĽliwe wyjaĹ›nienia
-   zachowania systemu, wymieĹ„ je jako
-   alternatywne wyjaĹ›nienia, a nie fakty.
+5. JeÄąÄ˝eli istniejĂ„â€¦ rÄ‚Ĺ‚ÄąÄ˝ne moÄąÄ˝liwe wyjaÄąâ€şnienia
+   zachowania systemu, wymieÄąâ€ž je jako
+   alternatywne wyjaÄąâ€şnienia, a nie fakty.
 
-6. Zaproponuj nastÄ™pne pytanie eksperymentalne.
+6. Zaproponuj nastĂ„â„˘pne pytanie eksperymentalne.
 
-7. Zaproponuj nastÄ™pny eksperyment,
-   ktĂłry pomoĹĽe ustaliÄ‡ PRZYCZYNÄ zachowania.
+7. Zaproponuj nastĂ„â„˘pny eksperyment,
+   ktÄ‚Ĺ‚ry pomoÄąÄ˝e ustaliĂ„â€ˇ PRZYCZYNĂ„Â zachowania.
 
 8. NIE PROPONUJ JESZCZE NAPRAWY ALGORYTMU.
 """
+
