@@ -15,15 +15,15 @@ class HypothesisStatus(Enum):
 
     CONFIRMED = "POTWIERDZONA"
     REJECTED = "OBALONA"
-    INCONCLUSIVE = "NIEROZSTRZYGNIĘTA"
+    INCONCLUSIVE = "NIEROZSTRZYGNIÄTA"
 
 
 class ExperimentInterpretation(BaseModel):
     """
     Interpretacja rzeczywistego eksperymentu.
 
-    Model językowy interpretuje dane,
-    ale nie może ich zmieniać.
+    Model jÄ™zykowy interpretuje dane,
+    ale nie moĹĽe ich zmieniaÄ‡.
     """
 
     hypothesis_status: HypothesisStatus
@@ -50,69 +50,70 @@ class ExperimentInterpretation(BaseModel):
 
 class GeminiExperimentInterpreter:
     """
-    Interpretuje wyniki eksperymentów FENIKSA
+    Interpretuje wyniki eksperymentĂłw FENIKSA
     przy pomocy Gemini.
 
-    WAŻNE:
+    WAĹ»NE:
 
     Gemini nie wykonuje eksperymentu.
     Gemini nie tworzy obserwacji.
-    Gemini nie może zmieniać wyników.
+    Gemini nie moĹĽe zmieniaÄ‡ wynikĂłw.
 
-    Otrzymuje wyłącznie dane zmierzone
-    przez ExperimentRunner i próbuje
-    wyciągnąć z nich ostrożne wnioski.
+    Otrzymuje wyĹ‚Ä…cznie dane zmierzone
+    przez ExperimentRunner i prĂłbuje
+    wyciÄ…gnÄ…Ä‡ z nich ostroĹĽne wnioski.
     """
 
     MODEL = "gemini-3.5-flash"
+    supports_prior_knowledge_context = True
 
     SYSTEM_INSTRUCTION = """
-Jesteś zewnętrzną warstwą interpretacji eksperymentów
+JesteĹ› zewnÄ™trznÄ… warstwÄ… interpretacji eksperymentĂłw
 systemu FENIKS.
 
 Otrzymujesz:
 
-1. hipotezę postawioną PRZED eksperymentem,
+1. hipotezÄ™ postawionÄ… PRZED eksperymentem,
 2. rzeczywiste obserwacje wygenerowane przez program,
 3. dodatkowe ustalenia obliczone przez program.
 
 Twoim zadaniem jest interpretacja tych danych.
 
-Hierarchia wiarygodności:
+Hierarchia wiarygodnoĹ›ci:
 
 RZECZYWISTE OBSERWACJE PROGRAMU
-mają pierwszeństwo przed
-HIPOTEZĄ MODELU.
+majÄ… pierwszeĹ„stwo przed
+HIPOTEZÄ„ MODELU.
 
 Nie wolno ci:
 
-- zmieniać wartości obserwacji,
-- wymyślać brakujących wyników,
-- twierdzić, że wykonano test, którego nie wykonano,
-- dopasowywać danych do wcześniejszej hipotezy,
-- przedstawiać hipotezy jako faktu,
-- proponować naprawy przed ustaleniem natury problemu,
-- wymyślać arbitralnych progów liczbowych.
+- zmieniaÄ‡ wartoĹ›ci obserwacji,
+- wymyĹ›laÄ‡ brakujÄ…cych wynikĂłw,
+- twierdziÄ‡, ĹĽe wykonano test, ktĂłrego nie wykonano,
+- dopasowywaÄ‡ danych do wczeĹ›niejszej hipotezy,
+- przedstawiaÄ‡ hipotezy jako faktu,
+- proponowaÄ‡ naprawy przed ustaleniem natury problemu,
+- wymyĹ›laÄ‡ arbitralnych progĂłw liczbowych.
 
-Jeżeli dane przeczą hipotezie, masz to jawnie powiedzieć.
+JeĹĽeli dane przeczÄ… hipotezie, masz to jawnie powiedzieÄ‡.
 
-Jeżeli eksperyment nie wystarcza do rozstrzygnięcia hipotezy,
-oznacz ją jako NIEROZSTRZYGNIĘTĄ.
+JeĹĽeli eksperyment nie wystarcza do rozstrzygniÄ™cia hipotezy,
+oznacz jÄ… jako NIEROZSTRZYGNIÄTÄ„.
 
-Jeżeli eksperyment ujawnia inne zjawisko niż to,
-którego oczekiwano, oddziel:
+JeĹĽeli eksperyment ujawnia inne zjawisko niĹĽ to,
+ktĂłrego oczekiwano, oddziel:
 
-- wynik dotyczący pierwotnej hipotezy,
+- wynik dotyczÄ…cy pierwotnej hipotezy,
 - nowe nieoczekiwane ustalenie.
 
-Następny eksperyment powinien służyć poznaniu przyczyny
+NastÄ™pny eksperyment powinien sĹ‚uĹĽyÄ‡ poznaniu przyczyny
 zaobserwowanego zachowania.
 
 Nie projektuj jeszcze naprawy systemu.
 
 Najpierw diagnoza.
 Potem przyczyna.
-Dopiero później rozwiązanie.
+Dopiero pĂłĹşniej rozwiÄ…zanie.
 """
 
     def __init__(
@@ -126,6 +127,7 @@ Dopiero później rozwiązanie.
         self,
         hypothesis: str,
         result: ExperimentResult,
+        prior_knowledge_context: str = "",
     ) -> ExperimentInterpretation:
         """
         Interpretuje wykonany eksperyment.
@@ -134,6 +136,7 @@ Dopiero później rozwiązanie.
         prompt = self._build_prompt(
             hypothesis=hypothesis,
             result=result,
+            prior_knowledge_context=prior_knowledge_context,
         )
 
         response = self.client.models.generate_content(
@@ -149,7 +152,7 @@ Dopiero później rozwiązanie.
 
         if not response.text:
             raise RuntimeError(
-                "Gemini nie zwróciło interpretacji eksperymentu."
+                "Gemini nie zwrĂłciĹ‚o interpretacji eksperymentu."
             )
 
         return ExperimentInterpretation.model_validate_json(
@@ -160,6 +163,7 @@ Dopiero później rozwiązanie.
         self,
         hypothesis: str,
         result: ExperimentResult,
+        prior_knowledge_context: str = "",
     ) -> str:
         """
         Buduje zapis eksperymentu na podstawie
@@ -192,20 +196,42 @@ Dopiero później rozwiązanie.
         first_contradiction = (
             str(result.first_contradiction_at)
             if result.first_contradiction_at is not None
-            else "NIE WYSTĄPIŁA"
+            else "NIE WYSTÄ„PIĹA"
         )
 
         first_opposition_stronger = (
             str(result.first_opposition_stronger_at)
             if result.first_opposition_stronger_at is not None
-            else "NIE WYSTĄPIŁ"
+            else "NIE WYSTÄ„PIĹ"
         )
+
+        prior_knowledge_context = prior_knowledge_context.strip()
+
+        if prior_knowledge_context:
+            prior_knowledge_section = f"""
+WCZEŚNIEJSZA ZWERYFIKOWANA WIEDZA FENIKSA
+(KONTEKST POMOCNICZY — NIE WYNIK BIEŻĄCEGO EKSPERYMENTU):
+
+{prior_knowledge_context}
+
+WAŻNE:
+- ta sekcja nie jest nową obserwacją,
+- nie może automatycznie rozstrzygać hipotezy,
+- przy sprzeczności pierwszeństwo mają bieżące obserwacje programu.
+"""
+        else:
+            prior_knowledge_section = """
+WCZEŚNIEJSZA ZWERYFIKOWANA WIEDZA FENIKSA:
+
+Brak wcześniejszej wiedzy dobranej do tego problemu.
+"""
 
         return f"""
 HIPOTEZA POSTAWIONA PRZED EKSPERYMENTEM:
 
 {hypothesis}
 
+{prior_knowledge_section}
 
 NAZWA EKSPERYMENTU:
 
@@ -219,11 +245,11 @@ RZECZYWISTE OBSERWACJE PROGRAMU:
 
 USTALENIA OBLICZONE PRZEZ PROGRAM:
 
-Pierwsza wykryta sprzeczność:
+Pierwsza wykryta sprzecznoĹ›Ä‡:
 N={first_contradiction}
 
-Pierwszy moment, gdy siła sprzeciwu
-przewyższyła siłę poparcia:
+Pierwszy moment, gdy siĹ‚a sprzeciwu
+przewyĹĽszyĹ‚a siĹ‚Ä™ poparcia:
 N={first_opposition_stronger}
 
 Maksymalne przebadane N:
@@ -232,24 +258,24 @@ Maksymalne przebadane N:
 
 ZADANIE:
 
-1. Oceń status pierwotnej hipotezy.
+1. OceĹ„ status pierwotnej hipotezy.
 
-2. Wyjaśnij ocenę WYŁĄCZNIE na podstawie
-   dostarczonych wyników.
+2. WyjaĹ›nij ocenÄ™ WYĹÄ„CZNIE na podstawie
+   dostarczonych wynikĂłw.
 
-3. Wskaż nowe ustalenia wynikające
-   bezpośrednio z obserwacji.
+3. WskaĹĽ nowe ustalenia wynikajÄ…ce
+   bezpoĹ›rednio z obserwacji.
 
-4. Oddziel niewiadome od faktów.
+4. Oddziel niewiadome od faktĂłw.
 
-5. Jeżeli istnieją różne możliwe wyjaśnienia
-   zachowania systemu, wymień je jako
-   alternatywne wyjaśnienia, a nie fakty.
+5. JeĹĽeli istniejÄ… rĂłĹĽne moĹĽliwe wyjaĹ›nienia
+   zachowania systemu, wymieĹ„ je jako
+   alternatywne wyjaĹ›nienia, a nie fakty.
 
-6. Zaproponuj następne pytanie eksperymentalne.
+6. Zaproponuj nastÄ™pne pytanie eksperymentalne.
 
-7. Zaproponuj następny eksperyment,
-   który pomoże ustalić PRZYCZYNĘ zachowania.
+7. Zaproponuj nastÄ™pny eksperyment,
+   ktĂłry pomoĹĽe ustaliÄ‡ PRZYCZYNÄ zachowania.
 
 8. NIE PROPONUJ JESZCZE NAPRAWY ALGORYTMU.
 """

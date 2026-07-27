@@ -40,45 +40,45 @@ from core.truth_engine import Claim, Evidence, TruthEngine
 
 class Feniks:
     """
-    GĂ„Ä…Ă˘â‚¬ĹˇĂ„â€šÄąâ€šwny rdzeĂ„Ä…Ă˘â‚¬Ĺľ FENIKS OS.
+    GÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡Ä‚â€žĂ˘â‚¬ĹˇĂ„Ä…Ă˘â‚¬Ĺˇwny rdzeÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąÄľ FENIKS OS.
 
-    Ă„Ä…Ă‚ÂÄ‚â€žĂ˘â‚¬Â¦czy wyspecjalizowane moduĂ„Ä…Ă˘â‚¬Ĺˇy w jeden system.
+    Ä‚â€žĂ„â€¦Ä‚â€šĂ‚ÂĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦czy wyspecjalizowane moduÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡y w jeden system.
 
-    RdzeĂ„Ä…Ă˘â‚¬Ĺľ rozdziela:
-    - dziaĂ„Ä…Ă˘â‚¬Ĺˇanie operacyjne,
-    - pamiÄ‚â€žĂ˘â€žËÄ‚â€žĂ˘â‚¬Ë‡,
-    - ocenÄ‚â€žĂ˘â€žË prawdy,
-    - historiÄ‚â€žĂ˘â€žË rozwoju,
-    - samoanalizÄ‚â€žĂ˘â€žË,
-    - samowiedzÄ‚â€žĂ˘â€žË o dziaĂ„Ä…Ă˘â‚¬Ĺˇaniu systemu,
+    RdzeÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąÄľ rozdziela:
+    - dziaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡anie operacyjne,
+    - pamiĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹ÂĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‹â€ˇ,
+    - ocenĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â prawdy,
+    - historiĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â rozwoju,
+    - samoanalizĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â,
+    - samowiedzĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â o dziaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡aniu systemu,
     - eksperymenty diagnostyczne,
-    - walidacjÄ‚â€žĂ˘â€žË interpretacji.
+    - walidacjĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â interpretacji.
     """
 
     def __init__(self):
-        # ToĂ„Ä…Ă„ËťsamoĂ„Ä…Ă˘â‚¬ĹźÄ‚â€žĂ˘â‚¬Ë‡
+        # ToÄ‚â€žĂ„â€¦Ä‚â€žĂ‹ĹĄsamoÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąĹşĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‹â€ˇ
         self.identity = Identity()
 
         # Konstytucja
         self.constitution = Constitution()
 
-        # StraĂ„Ä…Ă„Ëťnik
+        # StraÄ‚â€žĂ„â€¦Ä‚â€žĂ‹ĹĄnik
         self.guardian = Guardian(
             self.constitution
         )
 
-        # PamiÄ‚â€žĂ˘â€žËÄ‚â€žĂ˘â‚¬Ë‡ robocza
+        # PamiĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹ÂĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‹â€ˇ robocza
         self.memory = Memory(
             capacity=20
         )
 
-        # TrwaĂ„Ä…Ă˘â‚¬Ĺˇa pamiÄ‚â€žĂ˘â€žËÄ‚â€žĂ˘â‚¬Ë‡ SQLite
+        # TrwaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡a pamiĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹ÂĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‹â€ˇ SQLite
         self.persistent_memory = PersistentMemory()
 
         # Silnik Prawdy
         self.truth_engine = TruthEngine()
 
-        # Rejestr Rozwoju bieĂ„Ä…Ă„ËťÄ‚â€žĂ˘â‚¬Â¦cej sesji
+        # Rejestr Rozwoju bieÄ‚â€žĂ„â€¦Ä‚â€žĂ‹ĹĄĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦cej sesji
         self.development_log = DevelopmentLog()
 
         # Samoanaliza
@@ -87,18 +87,18 @@ class Feniks:
         )
 
         # =================================================
-        # POZNAWCZY RDZEĂ„Ä…Ă‚Â DIAGNOSTYCZNY
+        # POZNAWCZY RDZEÄ‚â€žĂ„â€¦Ä‚â€šĂ‚Â DIAGNOSTYCZNY
         # =================================================
 
         # Jawna samowiedza FENIKSA o rzeczywistym
-        # dziaĂ„Ä…Ă˘â‚¬Ĺˇaniu jego wĂ„Ä…Ă˘â‚¬Ĺˇasnych mechanizmĂ„â€šÄąâ€šw.
+        # dziaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡aniu jego wÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡asnych mechanizmÄ‚â€žĂ˘â‚¬ĹˇĂ„Ä…Ă˘â‚¬Ĺˇw.
         self.system_knowledge = SystemKnowledge()
 
         # Wykonuje kontrolowane eksperymenty
         # na rzeczywistych komponentach systemu.
         self.experiment_runner = ExperimentRunner()
 
-        # Sprawdza interpretacje wzglÄ‚â€žĂ˘â€žËdem:
+        # Sprawdza interpretacje wzglĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Âdem:
         # - obserwacji eksperymentalnych,
         # - wykonaniowej samowiedzy,
         # - wiedzy uzyskanej z inspekcji kodu.
@@ -106,12 +106,12 @@ class Feniks:
             system_knowledge=self.system_knowledge
         )
 
-        # Produkcyjna warstwa interpretacji eksperymentÄ‚Ĺ‚w.
-        # Interpreter proponuje interpretacjĂ„â„˘,
-        # ale nie podejmuje koÄąâ€žcowej decyzji o wiedzy.
+        # Produkcyjna warstwa interpretacji eksperymentĂ„â€šÄąâ€šw.
+        # Interpreter proponuje interpretacjÄ‚â€žĂ˘â€žË,
+        # ale nie podejmuje koĂ„Ä…Ă˘â‚¬Ĺľcowej decyzji o wiedzy.
         self.experiment_interpreter = GeminiExperimentInterpreter()
 
-        # PeÄąâ€šny cykl poznawczy:
+        # PeĂ„Ä…Ă˘â‚¬Ĺˇny cykl poznawczy:
         # eksperyment -> interpretacja -> walidacja.
         self.cognitive_cycle = CognitiveCycle(
             interpreter=self.experiment_interpreter,
@@ -120,22 +120,22 @@ class Feniks:
             reasoning_validator=self.reasoning_validator,
         )
 
-        # Brama Wiedzy jest kontrolowanym przejÄąâ€şciem
-        # od kandydata do wiedzy do trwaÄąâ€šej pamiĂ„â„˘ci.
+        # Brama Wiedzy jest kontrolowanym przejĂ„Ä…Ă˘â‚¬Ĺźciem
+        # od kandydata do wiedzy do trwaĂ„Ä…Ă˘â‚¬Ĺˇej pamiÄ‚â€žĂ˘â€žËci.
         self.knowledge_gate = KnowledgeGate(
             persistent_memory=self.persistent_memory
         )
 
-        # Aktywny dostÄ™p do wczeĹ›niej zweryfikowanej wiedzy.
+        # Aktywny dostĂ„â„˘p do wczeÄąâ€şniej zweryfikowanej wiedzy.
         # Retriever przygotowuje kontekst, ale nie rozstrzyga
         # automatycznie nowego problemu.
         self.knowledge_retriever = KnowledgeRetriever(
             persistent_memory=self.persistent_memory
         )
 
-        # Produkcyjna warstwa semantycznej oceny trafności.
-        # Gemini może wyłącznie oceniać rekordy dopuszczone
-        # wcześniej przez KnowledgeRetriever.
+        # Produkcyjna warstwa semantycznej oceny trafnoĹ›ci.
+        # Gemini moĹĽe wyĹ‚Ä…cznie oceniaÄ‡ rekordy dopuszczone
+        # wczeĹ›niej przez KnowledgeRetriever.
         self.knowledge_relevance_provider = (
             GeminiKnowledgeRelevanceProvider()
         )
@@ -158,7 +158,7 @@ class Feniks:
         self.memory.remember(
             content=(
                 f"{self.name} v{self.version} "
-                f"zostaĂ„Ä…Ă˘â‚¬Ĺˇ uruchomiony."
+                f"zostaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡ uruchomiony."
             ),
             source="system",
         )
@@ -169,32 +169,32 @@ class Feniks:
         )
 
     # =====================================================
-    # TOĂ„Ä…Ă‚Â»SAMOĂ„Ä…ÄąË‡Ä‚â€žĂ˘â‚¬Â  I KONSTYTUCJA
+    # TOÄ‚â€žĂ„â€¦Ä‚â€šĂ‚Â»SAMOÄ‚â€žĂ„â€¦Ă„Ä…Ă‹â€ˇĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â  I KONSTYTUCJA
     # =====================================================
 
     def who_am_i(self):
         """
-        Odczytuje wĂ„Ä…Ă˘â‚¬ĹˇasnÄ‚â€žĂ˘â‚¬Â¦ toĂ„Ä…Ă„ËťsamoĂ„Ä…Ă˘â‚¬ĹźÄ‚â€žĂ˘â‚¬Ë‡.
+        Odczytuje wÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡asnĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦ toÄ‚â€žĂ„â€¦Ä‚â€žĂ‹ĹĄsamoÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąĹşĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‹â€ˇ.
         """
 
         return self.identity.describe()
 
     def who_created_me(self):
         """
-        Odczytuje informacje o twĂ„â€šÄąâ€šrcach projektu.
+        Odczytuje informacje o twÄ‚â€žĂ˘â‚¬ĹˇĂ„Ä…Ă˘â‚¬Ĺˇrcach projektu.
         """
 
         return self.identity.get_creators()
 
     def read_constitution(self):
         """
-        Odczytuje KonstytucjÄ‚â€žĂ˘â€žË.
+        Odczytuje KonstytucjĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â.
         """
 
         return self.constitution.read_articles()
 
     # =====================================================
-    # STRAĂ„Ä…Ă‚Â»NIK
+    # STRAÄ‚â€žĂ„â€¦Ä‚â€šĂ‚Â»NIK
     # =====================================================
 
     def evaluate_action(
@@ -202,7 +202,7 @@ class Feniks:
         action: str,
     ):
         """
-        Przekazuje planowane dziaĂ„Ä…Ă˘â‚¬Ĺˇanie do StraĂ„Ä…Ă„Ëťnika.
+        Przekazuje planowane dziaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡anie do StraÄ‚â€žĂ„â€¦Ä‚â€žĂ‹ĹĄnika.
         """
 
         return self.guardian.evaluate(
@@ -231,7 +231,7 @@ class Feniks:
         evidence: Evidence,
     ):
         """
-        Dodaje dowĂ„â€šÄąâ€šd dotyczÄ‚â€žĂ˘â‚¬Â¦cy twierdzenia.
+        Dodaje dowÄ‚â€žĂ˘â‚¬ĹˇĂ„Ä…Ă˘â‚¬Ĺˇd dotyczĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦cy twierdzenia.
         """
 
         self.truth_engine.add_evidence(
@@ -252,16 +252,16 @@ class Feniks:
         )
 
     # =====================================================
-    # PAMIÄ‚â€žĂ‚ÂÄ‚â€žĂ˘â‚¬Â  ROBOCZA
+    # PAMIĂ„â€šĂ˘â‚¬ĹľÄ‚â€šĂ‚ÂĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â  ROBOCZA
     # =====================================================
 
     def remember(
         self,
         content: str,
-        source: str = "uĂ„Ä…Ă„Ëťytkownik",
+        source: str = "uÄ‚â€žĂ„â€¦Ä‚â€žĂ‹ĹĄytkownik",
     ):
         """
-        Zapisuje informacjÄ‚â€žĂ˘â€žË w pamiÄ‚â€žĂ˘â€žËci roboczej.
+        Zapisuje informacjĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â w pamiĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Âci roboczej.
         """
 
         return self.memory.remember(
@@ -274,7 +274,7 @@ class Feniks:
         limit: int = 5,
     ):
         """
-        Odczytuje informacje z pamiÄ‚â€žĂ˘â€žËci roboczej.
+        Odczytuje informacje z pamiĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Âci roboczej.
         """
 
         return self.memory.recall(
@@ -282,7 +282,7 @@ class Feniks:
         )
 
     # =====================================================
-    # ZWYKĂ„Ä…Ă‚ÂA PAMIÄ‚â€žĂ‚ÂÄ‚â€žĂ˘â‚¬Â  TRWAĂ„Ä…Ă‚ÂA
+    # ZWYKÄ‚â€žĂ„â€¦Ä‚â€šĂ‚ÂA PAMIĂ„â€šĂ˘â‚¬ĹľÄ‚â€šĂ‚ÂĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â  TRWAÄ‚â€žĂ„â€¦Ä‚â€šĂ‚ÂA
     # =====================================================
 
     def remember_permanently(
@@ -294,7 +294,7 @@ class Feniks:
         metadata=None,
     ):
         """
-        Zapisuje informacjÄ‚â€žĂ˘â€žË w trwaĂ„Ä…Ă˘â‚¬Ĺˇej pamiÄ‚â€žĂ˘â€žËci.
+        Zapisuje informacjĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â w trwaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡ej pamiĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Âci.
         """
 
         return self.persistent_memory.save(
@@ -310,7 +310,7 @@ class Feniks:
         limit: int = 10,
     ):
         """
-        Odczytuje ostatnie trwaĂ„Ä…Ă˘â‚¬Ĺˇe wspomnienia.
+        Odczytuje ostatnie trwaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡e wspomnienia.
         """
 
         return self.persistent_memory.recent(
@@ -322,7 +322,7 @@ class Feniks:
         phrase: str,
     ):
         """
-        Przeszukuje trwaĂ„Ä…Ă˘â‚¬ĹˇÄ‚â€žĂ˘â‚¬Â¦ pamiÄ‚â€žĂ˘â€žËÄ‚â€žĂ˘â‚¬Ë‡.
+        Przeszukuje trwaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡Ă„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦ pamiĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹ÂĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‹â€ˇ.
         """
 
         return self.persistent_memory.search(
@@ -341,8 +341,8 @@ class Feniks:
         discovered_by: str = "FENIKS",
     ):
         """
-        Rejestruje doĂ„Ä…Ă˘â‚¬Ĺźwiadczenie rozwojowe
-        w pamiÄ‚â€žĂ˘â€žËci bieĂ„Ä…Ă„ËťÄ‚â€žĂ˘â‚¬Â¦cej sesji.
+        Rejestruje doÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąĹşwiadczenie rozwojowe
+        w pamiĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Âci bieÄ‚â€žĂ„â€¦Ä‚â€žĂ‹ĹĄĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦cej sesji.
         """
 
         return self.development_log.register(
@@ -354,13 +354,13 @@ class Feniks:
 
     def development_history(self):
         """
-        Odczytuje historiÄ‚â€žĂ˘â€žË rozwoju bieĂ„Ä…Ă„ËťÄ‚â€žĂ˘â‚¬Â¦cej sesji.
+        Odczytuje historiĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â rozwoju bieÄ‚â€žĂ„â€¦Ä‚â€žĂ‹ĹĄĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦cej sesji.
         """
 
         return self.development_log.history()
 
     # =====================================================
-    # TRWAĂ„Ä…Ă‚ÂA HISTORIA ROZWOJU
+    # TRWAÄ‚â€žĂ„â€¦Ä‚â€šĂ‚ÂA HISTORIA ROZWOJU
     # =====================================================
 
     def save_development_permanently(
@@ -369,7 +369,7 @@ class Feniks:
     ):
         """
         Zapisuje wpis Rejestru Rozwoju
-        do trwaĂ„Ä…Ă˘â‚¬Ĺˇej historii SQLite.
+        do trwaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡ej historii SQLite.
         """
 
         return self.persistent_memory.save_development_entry(
@@ -391,7 +391,7 @@ class Feniks:
         limit=None,
     ):
         """
-        Odczytuje trwaĂ„Ä…Ă˘â‚¬ĹˇÄ‚â€žĂ˘â‚¬Â¦ historiÄ‚â€žĂ˘â€žË rozwoju.
+        Odczytuje trwaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡Ă„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦ historiĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â rozwoju.
         """
 
         return self.persistent_memory.development_history(
@@ -400,8 +400,8 @@ class Feniks:
 
     def unresolved_permanent_development(self):
         """
-        Odczytuje trwaĂ„Ä…Ă˘â‚¬Ĺˇe wpisy posiadajÄ‚â€žĂ˘â‚¬Â¦ce
-        nierozwiÄ‚â€žĂ˘â‚¬Â¦zane kwestie.
+        Odczytuje trwaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡e wpisy posiadajĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦ce
+        nierozwiĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦zane kwestie.
         """
 
         return self.persistent_memory.unresolved_development()
@@ -412,8 +412,8 @@ class Feniks:
 
     def analyze_self(self):
         """
-        Uruchamia samoanalizÄ‚â€žĂ˘â€žË FENIKSA na podstawie
-        trwaĂ„Ä…Ă˘â‚¬Ĺˇej historii rozwoju.
+        Uruchamia samoanalizĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â FENIKSA na podstawie
+        trwaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡ej historii rozwoju.
 
         Samoanaliza nie zmienia kodu systemu.
         """
@@ -423,7 +423,7 @@ class Feniks:
     def last_self_analysis(self):
         """
         Zwraca ostatni raport samoanalizy
-        z bieĂ„Ä…Ă„ËťÄ‚â€žĂ˘â‚¬Â¦cej sesji.
+        z bieÄ‚â€žĂ„â€¦Ä‚â€žĂ‹ĹĄĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦cej sesji.
         """
 
         return self.self_analysis.last_report()
@@ -434,10 +434,10 @@ class Feniks:
 
     def inspect_system_knowledge(self):
         """
-        Uruchamia kontrolowane badanie wĂ„Ä…Ă˘â‚¬Ĺˇasnego
-        TruthEngine i aktualizuje jawnÄ‚â€žĂ˘â‚¬Â¦ samowiedzÄ‚â€žĂ˘â€žË.
+        Uruchamia kontrolowane badanie wÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡asnego
+        TruthEngine i aktualizuje jawnĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦ samowiedzĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â.
 
-        Fakty pochodzÄ‚â€žĂ˘â‚¬Â¦ z rzeczywistego wykonania
+        Fakty pochodzĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦ z rzeczywistego wykonania
         systemu albo z jawnej inspekcji jego kodu.
         """
 
@@ -461,7 +461,7 @@ class Feniks:
 
     def system_code_facts(self):
         """
-        Zwraca fakty ustalone przez inspekcjÄ‚â€žĂ˘â€žË
+        Zwraca fakty ustalone przez inspekcjĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â
         aktualnej implementacji systemu.
         """
 
@@ -478,10 +478,10 @@ class Feniks:
         max_opposing: int = 20,
     ) -> ExperimentResult:
         """
-        Uruchamia rzeczywisty eksperyment badajÄ‚â€žĂ˘â‚¬Â¦cy
-        relacjÄ‚â€žĂ˘â€žË liczby dowodĂ„â€šÄąâ€šw do ich jakoĂ„Ä…Ă˘â‚¬Ĺźci.
+        Uruchamia rzeczywisty eksperyment badajĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦cy
+        relacjĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â liczby dowodÄ‚â€žĂ˘â‚¬ĹˇĂ„Ä…Ă˘â‚¬Ĺˇw do ich jakoÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąĹşci.
 
-        Eksperyment nie korzysta z modelu jÄ‚â€žĂ˘â€žËzykowego
+        Eksperyment nie korzysta z modelu jĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Âzykowego
         do przewidywania wyniku.
         """
 
@@ -494,7 +494,7 @@ class Feniks:
     def experiment_history(self):
         """
         Zwraca eksperymenty wykonane podczas
-        bieĂ„Ä…Ă„ËťÄ‚â€žĂ˘â‚¬Â¦cego Ă„Ä…Ă„Ëťycia obiektu Feniks.
+        bieÄ‚â€žĂ„â€¦Ä‚â€žĂ‹ĹĄĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦cego Ä‚â€žĂ„â€¦Ä‚â€žĂ‹ĹĄycia obiektu Feniks.
         """
 
         return list(
@@ -511,11 +511,11 @@ class Feniks:
         result: ExperimentResult,
     ) -> ValidationReport:
         """
-        Waliduje interpretacjÄ‚â€žĂ˘â€žË eksperymentu wzglÄ‚â€žĂ˘â€žËdem
+        Waliduje interpretacjĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â eksperymentu wzglĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Âdem
         twardych obserwacji i samowiedzy systemowej.
 
-        Sama interpretacja nie staje siÄ‚â€žĂ˘â€žË faktem tylko
-        dlatego, Ă„Ä…Ă„Ëťe zostaĂ„Ä…Ă˘â‚¬Ĺˇa wygenerowana przez model.
+        Sama interpretacja nie staje siĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â faktem tylko
+        dlatego, Ä‚â€žĂ„â€¦Ä‚â€žĂ‹ĹĄe zostaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡a wygenerowana przez model.
         """
 
         return (
@@ -527,7 +527,7 @@ class Feniks:
         )
 
     # =====================================================
-    # PEÄąÂNY CYKL POZNAWCZY
+    # PEĂ„Ä…Ă‚ÂNY CYKL POZNAWCZY
     # =====================================================
 
     def run_cognitive_cycle(
@@ -536,22 +536,33 @@ class Feniks:
         strong_support_reliability: float = 0.95,
         opposing_reliability: float = 0.50,
         max_opposing: int = 20,
+        knowledge_limit: int | None = 5,
     ) -> CognitiveCycleResult:
         """
-        Uruchamia peÄąâ€šny cykl poznawczy FENIKSA:
+        Uruchamia pełny cykl poznawczy FENIKSA.
 
-        eksperyment -> interpretacja -> walidacja.
-
-        Poprawny wynik moÄąÄ˝e staĂ„â€ˇ siĂ„â„˘ kandydatem
-        do wiedzy, ale ta metoda nie zapisuje go
-        automatycznie do trwaÄąâ€šej pamiĂ„â„˘ci.
+        Przed eksperymentem FENIKS semantycznie dobiera wcześniejszą
+        zweryfikowaną wiedzę. Jest ona osobnym kontekstem pomocniczym,
+        a nie częścią hipotezy ani obserwacją bieżącego eksperymentu.
         """
+
+        relevant_knowledge = self.recall_relevant_knowledge(
+            problem=hypothesis,
+            limit=knowledge_limit,
+        )
+
+        prior_knowledge_context = (
+            relevant_knowledge.context.as_text()
+            if relevant_knowledge.context.records
+            else ""
+        )
 
         return self.cognitive_cycle.run_quantity_vs_quality(
             hypothesis=hypothesis,
             strong_support_reliability=strong_support_reliability,
             opposing_reliability=opposing_reliability,
             max_opposing=max_opposing,
+            prior_knowledge_context=prior_knowledge_context,
         )
 
     # =====================================================
@@ -567,10 +578,10 @@ class Feniks:
         Przekazuje wynik cyklu poznawczego
         do Bramy Wiedzy.
 
-        Brama ponownie sprawdza warunki przyjĂ„â„˘cia.
-        Dopiero pozytywna decyzja Bramy moÄąÄ˝e
-        spowodowaĂ„â€ˇ zapis zweryfikowanej wiedzy
-        do trwaÄąâ€šej pamiĂ„â„˘ci.
+        Brama ponownie sprawdza warunki przyjÄ‚â€žĂ˘â€žËcia.
+        Dopiero pozytywna decyzja Bramy moĂ„Ä…Ă„Ëťe
+        spowodowaÄ‚â€žĂ˘â‚¬Ë‡ zapis zweryfikowanej wiedzy
+        do trwaĂ„Ä…Ă˘â‚¬Ĺˇej pamiÄ‚â€žĂ˘â€žËci.
         """
 
         return self.knowledge_gate.admit(
@@ -579,7 +590,7 @@ class Feniks:
         )
 
     # =====================================================
-    # AKTYWNA PAMIÄÄ† POZNAWCZA
+    # AKTYWNA PAMIĂ„ÂĂ„â€  POZNAWCZA
     # =====================================================
 
     def retrieve_knowledge(
@@ -587,7 +598,7 @@ class Feniks:
         query: str,
         limit: int | None = 10,
     ) -> KnowledgeContext:
-        """Odnajduje bezpieczny kontekst wczeĹ›niejszej wiedzy."""
+        """Odnajduje bezpieczny kontekst wczeÄąâ€şniejszej wiedzy."""
 
         return self.knowledge_retriever.retrieve(
             query=query,
@@ -598,7 +609,7 @@ class Feniks:
         self,
         limit: int | None = None,
     ) -> KnowledgeContext:
-        """Zwraca wczeĹ›niej dopuszczonÄ…, zweryfikowanÄ… wiedzÄ™."""
+        """Zwraca wczeÄąâ€şniej dopuszczonĂ„â€¦, zweryfikowanĂ„â€¦ wiedzĂ„â„˘."""
 
         return self.knowledge_retriever.all_verified(
             limit=limit
@@ -610,12 +621,12 @@ class Feniks:
         limit: int | None = 5,
     ) -> RelevantKnowledgeResult:
         """
-        Dobiera wcześniej zweryfikowaną wiedzę
+        Dobiera wczeĹ›niej zweryfikowanÄ… wiedzÄ™
         do znaczenia nowego problemu.
 
-        Provider semantyczny ocenia trafność,
-        ale nie może ominąć KnowledgeRetriever
-        ani zapisać czegokolwiek do pamięci.
+        Provider semantyczny ocenia trafnoĹ›Ä‡,
+        ale nie moĹĽe ominÄ…Ä‡ KnowledgeRetriever
+        ani zapisaÄ‡ czegokolwiek do pamiÄ™ci.
         """
 
         return self.knowledge_relevance_engine.select(
@@ -624,24 +635,24 @@ class Feniks:
         )
 
     # =====================================================
-    # PIERWSZE DOĂ„Ä…ÄąË‡WIADCZENIE ROZWOJOWE
+    # PIERWSZE DOÄ‚â€žĂ„â€¦Ă„Ä…Ă‹â€ˇWIADCZENIE ROZWOJOWE
     # =====================================================
 
     def create_first_development_experience(self):
         """
         Tworzy pierwszy rzeczywisty wpis
-        dotyczÄ‚â€žĂ˘â‚¬Â¦cy rozwoju Silnika Prawdy.
+        dotyczĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦cy rozwoju Silnika Prawdy.
         """
 
         entry = self.register_development(
             title=(
-                "Nadmierna pewnoĂ„Ä…Ă˘â‚¬ĹźÄ‚â€žĂ˘â‚¬Ë‡ pierwszej wersji "
+                "Nadmierna pewnoÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąĹşĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‹â€ˇ pierwszej wersji "
                 "Silnika Prawdy"
             ),
             description=(
-                "Pierwsza wersja algorytmu nadawaĂ„Ä…Ă˘â‚¬Ĺˇa "
-                "100% pewnoĂ„Ä…Ă˘â‚¬Ĺźci twierdzeniu, gdy istniaĂ„Ä…Ă˘â‚¬Ĺˇy "
-                "dowody wspierajÄ‚â€žĂ˘â‚¬Â¦ce i nie byĂ„Ä…Ă˘â‚¬Ĺˇo dowodĂ„â€šÄąâ€šw "
+                "Pierwsza wersja algorytmu nadawaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡a "
+                "100% pewnoÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąĹşci twierdzeniu, gdy istniaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡y "
+                "dowody wspierajĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦ce i nie byÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡o dowodÄ‚â€žĂ˘â‚¬ĹˇĂ„Ä…Ă˘â‚¬Ĺˇw "
                 "przeciwnych."
             ),
             category=DevelopmentCategory.TRUTH,
@@ -653,9 +664,9 @@ class Feniks:
         self.development_log.add_evidence(
             entry,
             (
-                "Test Silnika Prawdy zwrĂ„â€šÄąâ€šciĂ„Ä…Ă˘â‚¬Ĺˇ 100% "
-                "pewnoĂ„Ä…Ă˘â‚¬Ĺźci przy dwĂ„â€šÄąâ€šch dowodach "
-                "o wiarygodnoĂ„Ä…Ă˘â‚¬Ĺźci 0.98 oraz 0.95."
+                "Test Silnika Prawdy zwrÄ‚â€žĂ˘â‚¬ĹˇĂ„Ä…Ă˘â‚¬ĹˇciÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡ 100% "
+                "pewnoÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąĹşci przy dwÄ‚â€žĂ˘â‚¬ĹˇĂ„Ä…Ă˘â‚¬Ĺˇch dowodach "
+                "o wiarygodnoÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąĹşci 0.98 oraz 0.95."
             ),
         )
 
@@ -663,8 +674,8 @@ class Feniks:
             entry,
             (
                 "Algorytm zmieniono tak, aby "
-                "uwzglÄ‚â€žĂ˘â€žËdniaĂ„Ä…Ă˘â‚¬Ĺˇ bilans dowodĂ„â€šÄąâ€šw, "
-                "ich Ă„Ä…Ă˘â‚¬ĹźredniÄ‚â€žĂ˘â‚¬Â¦ jakoĂ„Ä…Ă˘â‚¬ĹźÄ‚â€žĂ˘â‚¬Ë‡ oraz liczbÄ‚â€žĂ˘â€žË."
+                "uwzglĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹ÂdniaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡ bilans dowodÄ‚â€žĂ˘â‚¬ĹˇĂ„Ä…Ă˘â‚¬Ĺˇw, "
+                "ich Ä‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąĹşredniĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‚Â¦ jakoÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąĹşĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‹â€ˇ oraz liczbĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â."
             ),
         )
 
@@ -672,15 +683,15 @@ class Feniks:
             entry,
             (
                 "Po zmianie to samo twierdzenie "
-                "otrzymaĂ„Ä…Ă˘â‚¬Ĺˇo 94% pewnoĂ„Ä…Ă˘â‚¬Ĺźci zamiast 100%."
+                "otrzymaÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡o 94% pewnoÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąĹşci zamiast 100%."
             ),
         )
 
         self.development_log.add_unresolved(
             entry,
             (
-                "NaleĂ„Ä…Ă„Ëťy rozdzieliÄ‚â€žĂ˘â‚¬Ë‡ siĂ„Ä…Ă˘â‚¬ĹˇÄ‚â€žĂ˘â€žË poparcia "
-                "twierdzenia od pewnoĂ„Ä…Ă˘â‚¬Ĺźci klasyfikacji "
+                "NaleÄ‚â€žĂ„â€¦Ä‚â€žĂ‹ĹĄy rozdzieliĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬Ă‹â€ˇ siÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąË‡Ă„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â‚¬ĹľĂ‹Â poparcia "
+                "twierdzenia od pewnoÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąĹşci klasyfikacji "
                 "przy sprzecznych dowodach."
             ),
         )
@@ -694,8 +705,8 @@ class Feniks:
 
     def register_first_development_experience(self):
         """
-        Starsza nazwa zachowana dla zgodnoĂ„Ä…Ă˘â‚¬Ĺźci
-        z wczeĂ„Ä…Ă˘â‚¬Ĺźniejszym kodem.
+        Starsza nazwa zachowana dla zgodnoÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąĹşci
+        z wczeÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąĹşniejszym kodem.
         """
 
         return self.create_first_development_experience()
@@ -775,7 +786,7 @@ class Feniks:
             "ustalenia_samoanalizy":
                 self_analysis_stats["liczba_ustalen"],
 
-            # Poznawczy rdzeĂ„Ä…Ă˘â‚¬Ĺľ diagnostyczny
+            # Poznawczy rdzeÄ‚â€žĂ„â€¦Ä‚ËĂ˘â€šÂ¬ÄąÄľ diagnostyczny
             "samowiedza_systemowa_zaladowana": True,
             "fakty_systemowe":
                 len(system_facts),
@@ -797,5 +808,6 @@ class Feniks:
             "provider_trafnosci_wiedzy_zaladowany": True,
             "silnik_trafnosci_wiedzy_zaladowany": True,
         }
+
 
 

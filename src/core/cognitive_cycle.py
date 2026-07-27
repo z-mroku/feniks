@@ -13,14 +13,14 @@ from core.system_knowledge import SystemKnowledge
 
 class CognitiveCycleDecision(Enum):
     """
-    Decyzja kończąca pojedynczy cykl poznawczy.
+    Decyzja koĹ„czÄ…ca pojedynczy cykl poznawczy.
 
     REJECTED:
-        Interpretacja nie przeszła walidacji.
+        Interpretacja nie przeszĹ‚a walidacji.
 
     CANDIDATE_FOR_KNOWLEDGE:
-        Interpretacja przeszła walidację, ale nie staje
-        się przez to automatycznie trwałą wiedzą.
+        Interpretacja przeszĹ‚a walidacjÄ™, ale nie staje
+        siÄ™ przez to automatycznie trwaĹ‚Ä… wiedzÄ….
     """
 
     REJECTED = "ODRZUCONO"
@@ -33,10 +33,10 @@ class CognitiveCycleDecision(Enum):
 class ExperimentInterpreter(Protocol):
     """
     Minimalny interfejs wymagany od warstwy
-    interpretującej eksperyment.
+    interpretujÄ…cej eksperyment.
 
-    CognitiveCycle nie musi wiedzieć,
-    czy interpretację przygotował Gemini,
+    CognitiveCycle nie musi wiedzieÄ‡,
+    czy interpretacjÄ™ przygotowaĹ‚ Gemini,
     inny model czy kontrolowany interpreter testowy.
     """
 
@@ -51,17 +51,17 @@ class ExperimentInterpreter(Protocol):
 @dataclass
 class CognitiveCycleResult:
     """
-    Pełny zapis jednego cyklu poznawczego.
+    PeĹ‚ny zapis jednego cyklu poznawczego.
 
     Zachowujemy osobno:
-    - hipotezę,
+    - hipotezÄ™,
     - rzeczywisty wynik eksperymentu,
-    - interpretację,
+    - interpretacjÄ™,
     - raport walidacji,
-    - końcową decyzję.
+    - koĹ„cowÄ… decyzjÄ™.
 
-    Dzięki temu żadna warstwa nie zastępuje
-    danych pochodzących z wcześniejszej warstwy.
+    DziÄ™ki temu ĹĽadna warstwa nie zastÄ™puje
+    danych pochodzÄ…cych z wczeĹ›niejszej warstwy.
     """
 
     hypothesis: str
@@ -76,10 +76,13 @@ class CognitiveCycleResult:
 
     admitted_to_memory: bool = False
 
+    # Audytowalny zapis wcześniejszej wiedzy użytej jako kontekst.
+    prior_knowledge_context: str = ""
+
     @property
     def safe_for_knowledge_candidate(self) -> bool:
         """
-        Informuje, czy wynik może być traktowany
+        Informuje, czy wynik moĹĽe byÄ‡ traktowany
         jako kandydat do dalszego procesu wiedzy.
         """
 
@@ -91,7 +94,7 @@ class CognitiveCycleResult:
 
 class CognitiveCycle:
     """
-    Kontroluje pełny cykl poznawczy FENIKSA:
+    Kontroluje peĹ‚ny cykl poznawczy FENIKSA:
 
     HIPOTEZA
         ->
@@ -105,11 +108,11 @@ class CognitiveCycle:
         ->
     DECYZJA
 
-    Model językowy nie kontroluje eksperymentu,
-    walidatora ani końcowej decyzji.
+    Model jÄ™zykowy nie kontroluje eksperymentu,
+    walidatora ani koĹ„cowej decyzji.
 
     CognitiveCycle nie zapisuje automatycznie
-    interpretacji do trwałej pamięci.
+    interpretacji do trwaĹ‚ej pamiÄ™ci.
     """
 
     def __init__(
@@ -149,15 +152,16 @@ class CognitiveCycle:
         strong_support_reliability: float = 0.95,
         opposing_reliability: float = 0.50,
         max_opposing: int = 20,
+        prior_knowledge_context: str = "",
     ) -> CognitiveCycleResult:
         """
-        Wykonuje pełny cykl poznawczy dla eksperymentu
+        Wykonuje peĹ‚ny cykl poznawczy dla eksperymentu
         quantity_vs_quality.
         """
 
         if not hypothesis.strip():
             raise ValueError(
-                "Hipoteza nie może być pusta."
+                "Hipoteza nie moĹĽe byÄ‡ pusta."
             )
 
         self._ensure_system_knowledge()
@@ -175,10 +179,17 @@ class CognitiveCycle:
             )
         )
 
-        interpretation = self.interpreter.interpret(
-            hypothesis=hypothesis,
-            result=experiment_result,
-        )
+        if getattr(self.interpreter, "supports_prior_knowledge_context", False):
+            interpretation = self.interpreter.interpret(
+                hypothesis=hypothesis,
+                result=experiment_result,
+                prior_knowledge_context=prior_knowledge_context,
+            )
+        else:
+            interpretation = self.interpreter.interpret(
+                hypothesis=hypothesis,
+                result=experiment_result,
+            )
 
         validation_report = (
             self.reasoning_validator
@@ -199,6 +210,7 @@ class CognitiveCycle:
             validation_report=validation_report,
             decision=decision,
             admitted_to_memory=False,
+            prior_knowledge_context=prior_knowledge_context,
         )
 
         self.cycles.append(
@@ -209,7 +221,7 @@ class CognitiveCycle:
 
     def history(self) -> list[CognitiveCycleResult]:
         """
-        Zwraca historię cykli bieżącej sesji.
+        Zwraca historiÄ™ cykli bieĹĽÄ…cej sesji.
         """
 
         return list(self.cycles)
@@ -228,10 +240,10 @@ class CognitiveCycle:
 
     def _ensure_system_knowledge(self) -> None:
         """
-        Przed walidacją upewnia się, że system
-        posiada aktualną samowiedzę TruthEngine.
+        Przed walidacjÄ… upewnia siÄ™, ĹĽe system
+        posiada aktualnÄ… samowiedzÄ™ TruthEngine.
 
-        Nie korzystamy tutaj z modelu językowego.
+        Nie korzystamy tutaj z modelu jÄ™zykowego.
         """
 
         if not self.system_knowledge.all_facts():
@@ -242,10 +254,10 @@ class CognitiveCycle:
         report: ValidationReport,
     ) -> CognitiveCycleDecision:
         """
-        Podejmuje deterministyczną decyzję
+        Podejmuje deterministycznÄ… decyzjÄ™
         na podstawie raportu walidatora.
 
-        Model interpretujący nie podejmuje
+        Model interpretujÄ…cy nie podejmuje
         tej decyzji.
         """
 
