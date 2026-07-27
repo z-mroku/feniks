@@ -5,6 +5,7 @@ from typing import Optional
 
 from google import genai
 from google.genai import types
+from google.genai.errors import ServerError
 from pydantic import BaseModel, Field
 
 
@@ -30,42 +31,25 @@ class ReasoningResult(BaseModel):
     Ustrukturyzowany wynik zewnętrznego rozumowania.
 
     Wynik NIE jest automatycznie uznawany za prawdę.
-
     Jest propozycją analizy, którą FENIKS musi później
     zweryfikować własnymi mechanizmami.
     """
 
     problem_understood_as: str
-
     known_facts: list[str]
     unknowns: list[str]
-
     hypothesis: str
-
     variable_under_test: str
     controlled_variables: list[str]
-
     experiment: str
     expected_observations: list[str]
-
     conclusion_rule: str
-
     cannot_conclude_yet: list[str]
-
-    confidence: float = Field(
-        ge=0.0,
-        le=1.0,
-    )
+    confidence: float = Field(ge=0.0, le=1.0)
 
 
 class ReasoningProvider(ABC):
-    """
-    Wspólny interfejs zewnętrznych dostawców rozumowania.
-
-    Rdzeń FENIKSA nie powinien wiedzieć,
-    czy analiza pochodzi z Gemini, OpenAI
-    czy przyszłego modelu lokalnego.
-    """
+    """Wspólny interfejs zewnętrznych dostawców rozumowania."""
 
     @abstractmethod
     def analyze(
@@ -84,31 +68,20 @@ class GeminiReasoningProvider(ReasoningProvider):
     """
     Dostawca rozumowania wykorzystujący Gemini API.
 
-    Gemini może:
-    - analizować problem,
-    - tworzyć hipotezę,
-    - projektować eksperyment,
-    - proponować rozwiązania, jeśli FENIKS jawnie
-      przełączy analizę w tryb SOLUTION.
-
-    Gemini NIE może:
-    - samodzielnie zapisywać pamięci FENIKSA,
-    - zmieniać kodu FENIKSA,
-    - samodzielnie rozstrzygać prawdy,
-    - wykonywać proponowanego eksperymentu,
-    - uznawać swojej odpowiedzi za dowód.
+    Model zewnętrzny jest warstwą analityczną, nie źródłem prawdy.
+    Przy przejściowym błędzie 503 modelu podstawowego provider może
+    użyć jawnie określonego modelu zapasowego.
     """
 
     MODEL = "gemini-3.5-flash"
+    FALLBACK_MODEL = "gemini-3.6-flash"
 
     SYSTEM_INSTRUCTION = """
 Jesteś zewnętrzną warstwą analityczną systemu FENIKS.
 
-Twoja odpowiedź jest propozycją rozumowania,
-a nie źródłem prawdy.
+Twoja odpowiedź jest propozycją rozumowania, a nie źródłem prawdy.
 
 Musisz ściśle rozdzielać:
-
 1. fakty wynikające z dostarczonych danych,
 2. niewiadome,
 3. hipotezy,
@@ -116,20 +89,20 @@ Musisz ściśle rozdzielać:
 5. kryteria rozstrzygnięcia.
 
 Nie wolno ci:
-
 - wymyślać wyników eksperymentów,
 - przedstawiać przewidywania jako obserwacji,
 - tworzyć arbitralnych progów liczbowych bez uzasadnienia,
 - uznawać hipotezy za fakt,
 - udawać wiedzy, której nie ma w dostarczonych danych.
 
-Jeżeli proponujesz wartość liczbową, której nie można
-wyprowadzić z dostarczonych danych, musisz jawnie
-oznaczyć ją jako parametr wymagający ustalenia
-eksperymentalnego.
+Jeżeli danych jest za mało, powiedz to wprost.
+Nie wypełniaj luk pozorną pewnością.
 
-Każdy eksperyment musi dotyczyć konkretnego
-badanego problemu.
+Jeżeli proponujesz wartość liczbową, której nie można wyprowadzić
+z dostarczonych danych, oznacz ją jako parametr wymagający
+ustalenia eksperymentalnego.
+
+Każdy eksperyment musi dotyczyć konkretnego badanego problemu.
 
 Historia FENIKSA może być wykorzystana jako kontekst,
 ale nie wolno automatycznie traktować jej jako dowodu
@@ -139,22 +112,18 @@ prawdziwości obecnej hipotezy.
     def __init__(
         self,
         model: Optional[str] = None,
+        fallback_model: Optional[str] = None,
     ):
-        """
-        Tworzy dostawcę Gemini.
-
-        Klucz API pobierany jest wyłącznie
-        ze zmiennej środowiskowej GEMINI_API_KEY.
-        """
-
         if not os.getenv("GEMINI_API_KEY"):
-            raise RuntimeError(
-                "Brak GEMINI_API_KEY w środowisku."
-            )
+            raise RuntimeError("Brak GEMINI_API_KEY w środowisku.")
 
         self.model = model or self.MODEL
-
+        self.fallback_model = fallback_model or self.FALLBACK_MODEL
         self.client = genai.Client()
+
+        self.last_model_used: Optional[str] = None
+        self.last_fallback_used: bool = False
+        self.last_primary_error: Optional[str] = None
 
     def analyze(
         self,
@@ -165,19 +134,6 @@ prawdziwości obecnej hipotezy.
         history: Optional[list[str]] = None,
         mode: ReasoningMode = ReasoningMode.DIAGNOSIS,
     ) -> ReasoningResult:
-        """
-        Przeprowadza analizę problemu.
-
-        Domyślnym trybem jest DIAGNOSIS.
-
-        Oznacza to, że FENIKS najpierw bada,
-        czy problem rzeczywiście istnieje.
-
-        Tryb SOLUTION powinien być używany dopiero,
-        gdy problem został wcześniej potwierdzony
-        rzeczywistym eksperymentem lub dowodami.
-        """
-
         history = history or []
 
         prompt = self._build_prompt(
@@ -189,8 +145,26 @@ prawdziwości obecnej hipotezy.
             mode=mode,
         )
 
+        self.last_model_used = None
+        self.last_fallback_used = False
+        self.last_primary_error = None
+
+        try:
+            text = self._generate(self.model, prompt)
+            self.last_model_used = self.model
+        except ServerError as exc:
+            if getattr(exc, "code", None) != 503:
+                raise
+            self.last_primary_error = str(exc)
+            text = self._generate(self.fallback_model, prompt)
+            self.last_model_used = self.fallback_model
+            self.last_fallback_used = True
+
+        return ReasoningResult.model_validate_json(text)
+
+    def _generate(self, model: str, prompt: str) -> str:
         response = self.client.models.generate_content(
-            model=self.model,
+            model=model,
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=self.SYSTEM_INSTRUCTION,
@@ -202,12 +176,10 @@ prawdziwości obecnej hipotezy.
 
         if not response.text:
             raise RuntimeError(
-                "Gemini nie zwróciło treści analizy."
+                f"Gemini ({model}) nie zwróciło treści analizy."
             )
 
-        return ReasoningResult.model_validate_json(
-            response.text
-        )
+        return response.text
 
     def _build_prompt(
         self,
@@ -218,104 +190,46 @@ prawdziwości obecnej hipotezy.
         history: list[str],
         mode: ReasoningMode,
     ) -> str:
-        """
-        Buduje instrukcję przekazywaną do modelu.
-
-        Instrukcja zależy od aktualnego etapu
-        rozumowania FENIKSA.
-        """
-
         evidence_text = (
-            "\n".join(
-                f"- {item}"
-                for item in evidence
-            )
-            if evidence
-            else "- BRAK DOSTARCZONYCH DOWODÓW"
+            "\n".join(f"- {item}" for item in evidence)
+            if evidence else "- BRAK DOSTARCZONYCH DOWODÓW"
         )
-
         unknowns_text = (
-            "\n".join(
-                f"- {item}"
-                for item in unknowns
-            )
-            if unknowns
-            else "- BRAK JAWNIE ZAPISANYCH NIEWIADOMYCH"
+            "\n".join(f"- {item}" for item in unknowns)
+            if unknowns else "- BRAK JAWNIE ZAPISANYCH NIEWIADOMYCH"
         )
-
         history_text = (
-            "\n".join(
-                f"- {item}"
-                for item in history
-            )
-            if history
-            else "- BRAK DOSTARCZONEJ HISTORII"
+            "\n".join(f"- {item}" for item in history)
+            if history else "- BRAK DOSTARCZONEJ HISTORII"
         )
 
         if mode == ReasoningMode.DIAGNOSIS:
             mode_instruction = """
 TRYB: DIAGNOZA
 
-Twoim zadaniem jest ustalić,
-czy opisany problem rzeczywiście istnieje.
-
+Ustal, czy opisany problem rzeczywiście istnieje.
 NIE PROPONUJ JESZCZE ROZWIĄZANIA PROBLEMU.
 
-Nie projektuj:
-
-- nowych algorytmów naprawczych,
-- nowych funkcji agregacji,
-- progów naprawczych,
-- zmian architektury,
-- mechanizmów mających usunąć problem.
-
 Hipoteza ma dotyczyć zachowania OBECNEGO systemu.
+Eksperyment ma badać OBECNY system bez jego modyfikowania.
 
-Eksperyment ma badać OBECNY system
-bez jego modyfikowania.
-
-Jeżeli obecne dane nie wystarczają do potwierdzenia
-problemu, zaprojektuj eksperyment pozwalający
-go potwierdzić albo obalić.
-
-Najpierw FENIKS musi uzyskać dowód,
-że problem rzeczywiście istnieje.
-
-Dopiero po potwierdzeniu problemu może zostać
-uruchomiony osobny etap poszukiwania rozwiązania.
+Jeżeli dane nie wystarczają do potwierdzenia problemu,
+zaproponuj eksperyment pozwalający go potwierdzić albo obalić.
 """
-
         elif mode == ReasoningMode.SOLUTION:
             mode_instruction = """
 TRYB: POSZUKIWANIE ROZWIĄZANIA
 
-Problem został wcześniej potwierdzony
-eksperymentalnie lub dowodami.
+Problem został wcześniej potwierdzony eksperymentalnie
+lub dowodami. Możesz proponować możliwe rozwiązania,
+ale żadnego nie przedstawiaj jako sprawdzonego.
 
-Możesz teraz proponować możliwe rozwiązania.
-
-Nie przedstawiaj jednak żadnego rozwiązania
-jako sprawdzonego lub prawdziwego.
-
-Musisz:
-
-- oddzielić propozycję od faktu,
-- wskazać założenia rozwiązania,
-- wskazać potencjalne słabości rozwiązania,
-- określić sposób jego przetestowania,
-- określić kryterium powodzenia testu.
-
+Oddziel propozycję od faktu, wskaż założenia i słabości,
+sposób testowania oraz kryterium powodzenia.
 Nie wymyślaj wyników przyszłych testów.
-
-Jeżeli parametr rozwiązania nie jest znany,
-oznacz go jako wymagający ustalenia
-eksperymentalnego.
 """
-
         else:
-            raise ValueError(
-                f"Nieobsługiwany tryb rozumowania: {mode}"
-            )
+            raise ValueError(f"Nieobsługiwany tryb rozumowania: {mode}")
 
         return f"""
 {mode_instruction}
@@ -337,15 +251,14 @@ ISTOTNA HISTORIA FENIKSA:
 
 Przeanalizuj dokładnie ten problem.
 
-Nie zakładaj, że historia jest dowodem
-prawdziwości obecnego twierdzenia.
-
+Historia jest kontekstem, a nie automatycznym dowodem.
 Nie wymyślaj brakujących danych.
+Jeżeli czegoś nie da się obecnie ustalić, pozostaw to
+jako niewiadomą lub granicę wnioskowania.
 
-Nie przedstawiaj przewidywanego wyniku
-eksperymentu jako wyniku rzeczywiście
-zaobserwowanego.
+Nie przedstawiaj przewidywanego wyniku eksperymentu
+jako wyniku rzeczywiście zaobserwowanego.
 
-Zwrócony wynik będzie dopiero kandydatem
-do dalszej weryfikacji przez FENIKSA.
+Zwrócony wynik będzie dopiero kandydatem do dalszej
+weryfikacji przez FENIKSA.
 """

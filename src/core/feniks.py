@@ -29,6 +29,12 @@ from core.gemini_knowledge_relevance_provider import (
 from core.identity import Identity
 from core.memory import Memory
 from core.persistent_memory import PersistentMemory
+from core.reasoning_engine import ReasoningProblem, ReasoningEngine
+from core.reasoning_provider import (
+    GeminiReasoningProvider,
+    ReasoningMode,
+    ReasoningResult as ProviderReasoningResult,
+)
 from core.reasoning_validator import (
     ValidationReport,
     ReasoningValidator,
@@ -146,6 +152,13 @@ class Feniks:
             knowledge_retriever=self.knowledge_retriever,
             provider=self.knowledge_relevance_provider,
         )
+
+        # Strukturalny silnik rozumowania nie zgaduje semantyki.
+        self.reasoning_engine = ReasoningEngine()
+
+        # Zewnętrzna warstwa semantycznego rozumowania.
+        # Wynik jest propozycją analizy, nie źródłem prawdy.
+        self.reasoning_provider = GeminiReasoningProvider()
 
         self.name = self.identity.name
         self.version = self.identity.version
@@ -563,6 +576,50 @@ class Feniks:
             opposing_reliability=opposing_reliability,
             max_opposing=max_opposing,
             prior_knowledge_context=prior_knowledge_context,
+        )
+
+    # =====================================================
+    # ROZUMOWANIE NAD NOWYM PROBLEMEM
+    # =====================================================
+
+    def reason_about_problem(
+        self,
+        problem: ReasoningProblem,
+        mode: ReasoningMode = ReasoningMode.DIAGNOSIS,
+        knowledge_limit: int | None = 5,
+    ) -> ProviderReasoningResult:
+        """Analizuje nowy problem z bezpiecznym kontekstem wcześniejszej wiedzy."""
+        if not isinstance(problem, ReasoningProblem):
+            raise TypeError("problem musi być obiektem ReasoningProblem.")
+
+        self.reasoning_engine.analyze(problem)
+
+        semantic_query = "\n".join(
+            part.strip()
+            for part in (problem.title, problem.description)
+            if part and part.strip()
+        )
+
+        relevant = self.recall_relevant_knowledge(
+            problem=semantic_query,
+            limit=knowledge_limit,
+        )
+
+        history = list(problem.history)
+        if relevant.context.records:
+            history.append(
+                "WCZEŚNIEJSZA ZWERYFIKOWANA WIEDZA FENIKSA "
+                "(KONTEKST, NIE BIEŻĄCY DOWÓD):\n"
+                + relevant.context.as_text()
+            )
+
+        return self.reasoning_provider.analyze(
+            title=problem.title,
+            description=problem.description,
+            evidence=list(problem.evidence),
+            unknowns=list(problem.unknowns),
+            history=history,
+            mode=mode,
         )
 
     # =====================================================
