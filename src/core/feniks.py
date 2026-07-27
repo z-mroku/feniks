@@ -31,6 +31,7 @@ from core.memory import Memory
 from core.persistent_memory import PersistentMemory
 from core.cognitive_orchestrator import CognitiveOrchestrator
 from core.cognitive_executor import CognitiveExecutor
+from core.response_engine import ResponseEngine, HumanResponse
 from core.reasoning_engine import ReasoningProblem, ReasoningEngine
 from core.reasoning_provider import (
     GeminiReasoningProvider,
@@ -169,6 +170,9 @@ class Feniks:
             orchestrator=self.cognitive_orchestrator,
             reason_callback=self.reason_about_problem,
         )
+
+        # Warstwa odpowiedzi dla człowieka.
+        self.response_engine = ResponseEngine()
 
         # Zewnętrzna warstwa semantycznego rozumowania.
         # Wynik jest propozycją analizy, nie źródłem prawdy.
@@ -786,6 +790,20 @@ class Feniks:
     # STAN SYSTEMU
     # =====================================================
 
+    def respond_to_problem(
+        self,
+        problem: ReasoningProblem,
+        mode: ReasoningMode = ReasoningMode.DIAGNOSIS,
+        knowledge_limit: int | None = 5,
+    ) -> HumanResponse:
+        # Pełny obecny łańcuch: decyzja -> wykonanie -> odpowiedź dla człowieka.
+        execution = self.cognitive_executor.execute(
+            problem=problem,
+            mode=mode,
+            knowledge_limit=knowledge_limit,
+        )
+        return self.response_engine.respond(execution)
+
     def status(self):
         """
         Podstawowa samoobserwacja stanu FENIKSA.
@@ -883,6 +901,9 @@ class Feniks:
                 self.cognitive_orchestrator.stats()["liczba_decyzji"],
             "wykonawca_poznawczy_zaladowany": True,
             "wykonania_poznawcze": self.cognitive_executor.stats()["liczba_wykonan"],
+            "warstwa_odpowiedzi_zaladowana": True,
+            "odpowiedzi_dla_czlowieka":
+                self.response_engine.stats()["liczba_odpowiedzi"],
         }
 
 
